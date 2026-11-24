@@ -1,0 +1,265 @@
+/* Hero: full-bleed shop photo, copy anchored hard left, facts below it,
+   a footer band with the counter list. Display type ~6.4vw at 0.92 line-height. */
+.hero-pin { position: relative; height: 300svh; }
+
+.hero {
+  --scale: 1;
+  --ui-scale: 1;
+  --hp: 0; /* scroll progress through .hero-pin, written by Hero.jsx */
+  /* local phases: copy leaves early, honey takes the frame late */
+  --leave: clamp(0, (var(--hp) - 0.04) / 0.36, 1);
+  --honeyfill: clamp(0, (var(--hp) - 0.62) / 0.38, 1);
+
+  position: sticky;
+  top: 0;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  overflow: hidden;
+  padding: calc(96px * var(--scale)) var(--gutter) calc(26px * var(--scale));
+  background: var(--ground-deep);
+}
+
+/* ---------- media ---------- */
+.hero__media { position: absolute; inset: 0; z-index: -1; }
+
+.hero__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 62% 38%;
+  animation: none;
+}
+/* Starts at a hair above 0 so the browser counts the photo as painted. */
+
+/* Scroll push-in uses the separate `scale` property so it never fights the
+   load transition on `transform`. Origin sits on the honey stream. */
+.hero__photo {
+  scale: calc(1 + var(--hp) * 0.42);
+  transform-origin: 58% 48%;
+}
+
+/* Honey wash that bridges the dive into the film below. */
+.hero__amber {
+  position: absolute;
+  inset: 0;
+  background: #bd771c;
+  opacity: calc(var(--honeyfill) * .72);
+  pointer-events: none;
+}
+
+/* The photo is bright on the right (honey + lit shelves) and near-black top-left,
+   so the scrim is asymmetric: heavy left wash under the copy, a floor for the
+   counter strip, and almost nothing over the honey stream. */
+.hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 60%);
+}
+
+/* 3D comb (HeroComb.jsx): canvas covers the hero, the scene places the comb
+   in the far half. Mirrored in Arabic so it stays opposite the copy. */
+.hero__comb {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.4s var(--ease-out);
+  pointer-events: none;
+}
+.hero__comb.is-ready { opacity: 1; }
+.hero__comb canvas { display: block; width: 100%; height: 100%; }
+[dir='rtl'] .hero__comb canvas { transform: scaleX(-1); }
+
+/* ---------- layout ---------- */
+.hero__inner {
+  flex: 1;
+  display: grid;
+  align-content: center;
+  /* Opacity + transform only (no blur filter): the copy leaves on the
+     compositor instead of re-rasterising the headline every frame. */
+  opacity: calc(1 - var(--leave));
+  transform: translate3d(0, calc(var(--leave) * -8vh), 0);
+}
+.hero__partners { opacity: calc(1 - var(--leave)); }
+
+.hero__lead { max-width: 660px; }
+
+ .hero__title {
+  margin-top: calc(24px * var(--scale));
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+
+}
+
+.hero__sub {
+  margin-top: calc(22px * var(--scale));
+  max-width: calc(440px * var(--scale));
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* ---------- CTA row ---------- */
+.hero__cta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(22px * var(--ui-scale));
+  margin-top: calc(28px * var(--scale));
+}
+
+.hero__go { font-size: var(--text-small); }
+
+.hero__go-dot {
+  display: grid;
+  place-items: center;
+  width: 2.55em;
+  height: 2.55em;
+  border-radius: 999px;
+  background: #1f0d00;
+  color: var(--honey-lit);
+}
+.hero__go-dot svg { width: 1.15em; height: 1.15em; }
+
+.hero__proof { display: flex; align-items: center; gap: 10px; border-radius: 12px; }
+.hero__proof:hover strong { color: var(--honey-lit); }
+
+.hero__ig {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+
+  background: var(--glass);
+}
+.hero__ig svg { width: 18px; height: 18px; }
+
+.hero__proof-text {
+  display: grid;
+  font-size: var(--text-small);
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+.hero__proof-text strong {
+  font-size: var(--text-small);
+  font-weight: 550;
+  color: rgba(255, 255, 255, 0.92);
+  transition: color 0.3s var(--ease-out);
+}
+
+.hero__foot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: calc(28px * var(--scale));
+}
+
+.hero__partners { text-align: end; }
+
+.hero__partners-label {
+  display: block;
+  margin-bottom: 14px;
+  font-size: var(--text-small);
+  color: var(--ink-faint);
+}
+
+.hero__partners ul {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px clamp(16px, 2vw, 28px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hero__partners li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--text-small);
+  font-weight: 450;
+  letter-spacing: -0.01em;
+  color: #f5f5f3;
+}
+.hero__partners li svg {
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+  color: var(--honey);
+}
+
+/* ---------- entrance: one orchestrated page-load moment ---------- */
+.hero__title,
+.hero__sub,
+.hero__cta,
+.hero__foot {
+  animation: none;
+}
+.hero__title { animation-delay: 0.06s; }
+.hero__sub { animation-delay: 0.14s; }
+.hero__cta { animation-delay: 0.2s; }
+.hero__foot { animation-delay: 0.36s; }
+
+@keyframes rise {
+  from { opacity: 0.01; transform: translateY(22px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 860px) {
+  .hero { padding-top: 108px; }
+  .hero__photo { object-position: 70% 40%; }
+  .hero__scrim {
+    background: rgb(0 0 0 / 60%);
+  }
+  .hero__foot { flex-direction: column; align-items: flex-start; }
+  .hero__partners { text-align: start; }
+  .hero__partners ul { justify-content: flex-start; }
+}
+
+@media (max-width: 560px) {
+  .hero { --scale: 0.9; }
+  .hero__title { letter-spacing: -0.03em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-pin { height: auto; }
+  .hero { position: relative; }
+  .hero__photo { animation: none; }
+  .hero__title,
+  .hero__sub,
+  .hero__cta,
+    .hero__foot { animation: none; }
+}
+.hero__lead { max-width: 740px; }
+.hero-pin:not([data-scroll-scene]) { height: auto; }
+.hero-pin:not([data-scroll-scene]) .hero { position: relative; --hp: 0 !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .hero__go-dot svg { transition: transform 240ms var(--ease-out); }
+  .hero__go:is(:hover, :focus-visible) svg { transform: translateX(3px); }
+  [dir='rtl'] .hero__go:is(:hover, :focus-visible) svg { transform: translateX(-3px); }
+}
+.hero__sub { color: #fafaf8; font-size: var(--text-body); }
+.hero__door {
+  display: inline-block;
+  align-self: end;
+  padding: 1px 16px 3px;
+
+  background: var(--patina);
+  color: #fff2db;
+  font: 400 var(--text-subhead)/1.15 var(--font-display);
+  opacity: calc(1 - var(--leave));
+}
+@media (max-width: 800px) { .hero__door { align-self: start; } }
+.hero__proof-text, .hero__partners-label { color: #f5f5f3; }
+.hero[data-copy-hidden] :is(.hero__inner, .hero__foot) { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .hero[data-copy-hidden] :is(.hero__inner, .hero__foot) { visibility: visible; }
+}

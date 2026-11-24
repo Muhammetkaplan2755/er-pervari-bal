@@ -1,0 +1,145 @@
+/* Homepage film: one sticky full-screen stage, four stacked scenes.
+   Film.jsx drives window/frame transforms, photo scale and copy from scroll
+   (compositor-only properties; clip shapes stay static); this file only sets
+   the stage, type and the reduced-motion fallback. */
+.film {
+  position: relative;
+  z-index: 1;
+  /* Overlap the hero's last two pinned screens. The film is transparent
+     until its hexagon opens, so the hero's honey frame shows through and
+     there is no seam or dead scroll between them. */
+  margin-top: -200svh;
+  pointer-events: none;
+}
+.film__copy { pointer-events: auto; }
+
+.film__pin { position: relative; height: 560svh; }
+
+.film__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.film__scene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.film__scene { visibility: hidden; }
+
+/* window = the shape that opens (fixed clip, animated transform);
+   frame = the inverse transform, so the photo does not move with it. */
+.film__window {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--ground-deep);
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+.film__frame {
+  background: #000;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+.film__img {
+  /* The black frame provides a neutral scrim beneath the photo. */
+  opacity: 0.42;
+  pointer-events: auto;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+/* zoom-out starts on the hexagonal shelves */
+.film__scene--raflar .film__img { transform-origin: 62% 16%; }
+/* the dolly heads for the shop door */
+.film__scene--dukkan .film__img { transform-origin: 50% 58%; }
+
+.film__copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: clamp(14px, 2vh, 22px);
+  max-width: min(980px, calc(100vw - 2 * var(--gutter)));
+  padding-inline: var(--gutter);
+  text-align: center;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+.film__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-display);
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+
+}
+
+.film__body {
+  max-width: 34ch;
+  font-size: var(--text-body);
+  line-height: 1.55;
+  color: #fff;
+  text-wrap: balance;
+}
+
+.film__cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.film__go { padding-inline: 1.5em; padding-block: 0.8em; }
+
+:root[lang='ar'] .film__title { font-weight: 600; line-height: 1.2; }
+
+.film__wash { position: absolute; inset: 0; background: #ad681f; opacity: 0; pointer-events: none; }
+.film__img:not([src]) { display: none; }
+.film__mask { display: inline-block; overflow: clip; overflow-clip-margin: .16em; vertical-align: bottom; }
+.film__word { display: block; }
+.film__pin[data-scroll-scene] .film__word {
+  transform: translate3d(calc(var(--entry, 0) * var(--drift, 10px)), calc(clamp(0, var(--entry, 0) * (1 + var(--lag)), 1) * 1.24em), 0);
+}
+
+/* Readable HTML is the baseline, including when motion is switched off mid-film. */
+.film:not(:has([data-scroll-scene])) { margin-top: 0; pointer-events: auto; }
+.film__pin:not([data-scroll-scene]) { height: auto; }
+.film__pin:not([data-scroll-scene]) .film__stage { position: relative; height: auto; }
+.film__pin:not([data-scroll-scene]) .film__scene { position: relative; min-height: 100svh; visibility: visible !important; }
+.film__pin:not([data-scroll-scene]) :is(.film__copy, .film__window, .film__frame) {
+  visibility: visible !important; opacity: 1 !important; transform: none !important;
+}
+.film__pin:not([data-scroll-scene]) :is(.film__window, .film__frame) {
+  inset: 0 !important; width: auto !important; height: auto !important; clip-path: none !important;
+}
+.film__pin:not([data-scroll-scene]) .film__img { transform: none !important; }
+.film__pin:not([data-scroll-scene]) .film__wash { display: none; }
+
+@media (max-width: 700px) {
+  .film__pin { height: 480svh; }
+  .film__title { font-size: var(--text-display); }
+}
+
+/* Reduced motion: no pinning, scenes become plain full-screen panels. */
+@media (prefers-reduced-motion: reduce) {
+  .film { margin-top: 0; pointer-events: auto; }
+  .film__pin { height: auto; }
+  .film__stage { position: relative; height: auto; overflow: visible; }
+  .film__scene,
+  .film__scene + .film__scene { position: relative; height: 100svh; visibility: visible; }
+  .film__copy { opacity: 1; }
+}

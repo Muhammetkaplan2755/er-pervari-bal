@@ -1,0 +1,39 @@
+# Her push ve pull request'te: gizli anahtar taraması, kod denetimi, testler ve derleme.
+# Hiçbir gizli anahtar gerekmez: panel/ödeme anahtarları yoksa site products.js ile derlenir.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks tüm geçmişi tarasın
+
+      - name: Gizli anahtar taraması (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - name: Gizli anahtar taraması (proje kalkanı)
+        run: npm run scan:secrets
+      - name: Kod denetimi
+        run: npm run lint
+      - name: Testler
+        run: npm test
+      - name: Derleme (prerender dahil)
+        run: npm run build

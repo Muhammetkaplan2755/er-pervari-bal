@@ -1,0 +1,15 @@
+# Haftalık bağımlılık güncelleme önerileri (pull request olarak gelir; otomatik birleşmez).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      fontsource:
+        patterns: ['@fontsource*']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

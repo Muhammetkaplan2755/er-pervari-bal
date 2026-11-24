@@ -1,0 +1,46 @@
+/* Floating WhatsApp button, bottom inline-end, clear of the centred cart pill. */
+.wa-fab {
+  position: fixed;
+  z-index: 30;
+  inset-inline-end: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  height: 54px;
+  padding: 0 15px;
+  border-radius: 999px;
+  background: #187a42; /* white text ≥ 5:1 */
+  color: #fff;
+
+  opacity: 0;
+  transform: translateY(16px) scale(0.92);
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out), gap 0.35s var(--ease-out),
+    background-color 0.25s var(--ease-out);
+}
+.wa-fab.is-shown { opacity: 1; transform: none; pointer-events: auto; }
+.wa-fab svg { width: 24px; height: 24px; flex: none; }
+.wa-fab:hover { background: #136436; }
+
+/* Label slides out on hover / keyboard focus (desktop), icon-only otherwise. */
+.wa-fab__label {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: var(--text-small);
+  font-weight: 600;
+  transition: max-width 0.4s var(--ease-out);
+}
+@media (hover: hover) {
+  .wa-fab:hover,
+  .wa-fab:focus-visible { gap: 8px; }
+  .wa-fab:hover .wa-fab__label,
+  .wa-fab:focus-visible .wa-fab__label { max-width: 160px; }
+}
+.wa-fab:focus-visible { outline: 3px solid #9a4f05; outline-offset: 3px; }
+
+/* Product pages on phones have a fixed buy bar at the bottom: sit above it. */
+@media (max-width: 959px) {
+  body:has(.pd__sticky) .wa-fab { bottom: calc(88px + env(safe-area-inset-bottom)); }
+}

@@ -1,0 +1,23 @@
+.kk__pour {
+  max-width: 1180px;
+  padding-inline: var(--gutter);
+  margin: clamp(52px, 6vw, 88px) auto 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(20px, 4vw, 64px);
+}
+.kk__pour-copy p {
+  font: 400 clamp(40px, 5vw, 76px)/1.06 var(--font-display);
+  letter-spacing: -.045em;
+  text-wrap: balance;
+  margin: 0 0 .4em;
+}
+[dir="rtl"] .kk__pour-copy p { letter-spacing: normal; line-height: 1.3; }
+.pour__stage { position: relative; aspect-ratio: 6 / 5; }
+.pour__stage canvas, .pour__still { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pour__stage[data-live] .pour__still { visibility: hidden; }
+@media (max-width: 767px) {
+  .kk__pour { grid-template-columns: 1fr; gap: 8px; }
+  .kk__pour-copy { text-align: center; }
+}

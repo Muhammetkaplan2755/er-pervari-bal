@@ -1,0 +1,3 @@
+#!/bin/sh
+# Push öncesi: izlenen tüm dosyalarda son bir tarama.
+node scripts/secret-scan.mjs || exit 1

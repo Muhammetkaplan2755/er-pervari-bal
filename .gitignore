@@ -1,0 +1,31 @@
+# Bağımlılıklar ve derleme çıktısı
+node_modules/
+dist/
+dist-ssr/
+
+# GİZLİ ANAHTARLAR — ASLA depoya girmez.
+# Her türlü .env dosyası (yalnızca anahtarsız şablon .env.example hariç)
+.env
+.env.*
+*.env
+!.env.example
+# Olası anahtar / sertifika dosyaları
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials*.json
+service-account*.json
+
+# Yerel araç dosyaları ve çalışma çıktıları
+.claude/settings.local.json
+.claude/*.jpg
+.claude/*.png
+.taste-skill/
+*.log
+
+# Kök klasördeki ham fotoğraflar (WhatsApp'tan gelenler; sitedekiler public/images'ta)
+/*.jpeg
+/*.jpg
+/*.png

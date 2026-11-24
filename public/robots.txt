@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /yonetim
+Disallow: /odeme
+
+# Alan adı belli olunca ekleyin:
+# Sitemap: https://ALAN-ADI/sitemap.xml

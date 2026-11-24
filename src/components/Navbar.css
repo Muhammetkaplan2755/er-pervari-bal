@@ -1,0 +1,190 @@
+/* Logo hard left, links in a centred outlined capsule, one white pill CTA hard right.
+   Bar is transparent and sits over the hero photo. */
+.nav {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: clamp(14px, 1.7vw, 22px) var(--gutter);
+
+  transition: padding 0.35s var(--ease-out), background-color 0.35s var(--ease-out),
+    border-color 0.35s var(--ease-out);
+}
+/* Once scrolled: compact, solid backing so links stay readable over any section. */
+.nav.is-scrolled {
+  padding-block: 10px;
+  background: #162923;
+  border-bottom-color: var(--hair-soft);
+
+}
+
+.nav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.nav__brand b { font-weight: 600; color: var(--honey-lit); }
+
+.nav__logo { width: 1.35em; height: 1.35em; }
+
+.nav__pill {
+  display: none;
+  padding: 5px;
+
+  border-radius: 12px;
+  background: #20352e;
+
+}
+
+.nav__pill ul {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav__pill a {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: var(--text-small);
+  font-weight: 450;
+  color: #f5f5f3;
+  background: transparent;
+  transition: background-color 0.3s var(--ease-out), color 0.3s var(--ease-out);
+}
+.nav__pill a:hover { background: rgba(255, 236, 205, 0.14); color: #fff; }
+
+.nav__actions { display: flex; align-items: center; gap: 10px; }
+
+.nav__cta { font-size: var(--text-small); font-weight: 550; }
+
+.nav__cart {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+
+  border-radius: 999px;
+  background: #20352e;
+
+}
+.nav__cart svg { width: 20px; height: 20px; }
+.nav__cart-count {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  display: grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--honey);
+  color: #1f0d00;
+  font-size: var(--text-small);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav__burger {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+
+  border-radius: 10px;
+  background: #20352e;
+
+}
+.nav__burger svg { width: 20px; height: 20px; }
+
+.nav__sheet {
+  position: fixed;
+  inset: 68px 12px auto;
+  padding: 18px;
+
+  border-radius: 18px;
+  background: rgba(20, 8, 0, 0.95);
+
+}
+.nav__sheet ul { margin: 0 0 14px; padding: 0; list-style: none; display: grid; gap: 2px; }
+.nav__sheet a {
+  display: block;
+  padding: 12px 10px;
+  border-radius: 10px;
+  font-size: var(--text-body);
+  color: #f5f5f3;
+}
+.nav__sheet a:hover { background: rgba(255, 236, 205, 0.07); }
+.nav__sheet-cta { width: 100%; justify-content: center; padding: 0.85em 1.4em; }
+
+/* ---------- light glass over the ivory store sections ---------- */
+.nav.is-light {
+  --ink: #1d1306;
+  --ink-faint: #6e5c46;
+  --hair: rgba(29, 19, 6, 0.12);
+  --hair-soft: rgba(29, 19, 6, 0.08);
+  color: var(--ink);
+}
+.nav.is-light.is-scrolled {
+  background: #e8eeea;
+  border-bottom-color: var(--hair-soft);
+}
+.nav.is-light .nav__brand b { color: #9a4f05; }
+.nav.is-light .nav__pill { background: #dde6df; }
+.nav.is-light .nav__pill a { color: #4f3f2c; background: transparent; }
+.nav.is-light .nav__pill a:hover { background: rgba(29, 19, 6, 0.06); color: var(--ink); }
+.nav.is-light .nav__cart,
+.nav.is-light .nav__burger,
+.nav.is-light .lang { background: rgba(255, 253, 249, 0.7); }
+.nav.is-light .nav__cta { background: #1d1306; color: #fff; }
+.nav.is-light .nav__cta:hover { background: #3a2610; }
+.nav.is-light :focus-visible { outline-color: #9a4f05; }
+
+@media (min-width: 1080px) {
+  .nav__pill { display: block; }
+  .nav__burger { display: none; }
+}
+
+@media (max-width: 480px) {
+  .nav__cta { display: none; }
+}
+
+/* ---------- language switch ---------- */
+.lang {
+  display: inline-flex;
+  padding: 3px;
+
+  border-radius: 999px;
+  background: #20352e;
+}
+.lang button {
+  min-width: 32px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--ink-faint);
+  transition: background-color 0.25s var(--ease-out), color 0.25s var(--ease-out);
+}
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed='true'] { background: var(--honey); color: #1f0d00; }
+
+.nav__sheet-lang { margin-bottom: 14px; }
+
+@media (max-width: 640px) {
+  .nav__lang { display: none; }
+}

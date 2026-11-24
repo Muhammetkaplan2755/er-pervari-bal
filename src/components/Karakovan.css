@@ -1,0 +1,81 @@
+.kk { position: relative; z-index: 1; padding-bottom: clamp(64px, 8vw, 120px); }
+.kk__spread { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.kk__plate { align-self: start; position: sticky; top: 64px; }
+.kk__plate img { width: 100%; height: min(76svh, 880px); object-fit: cover; }
+.kk__plate figcaption { color: var(--ink-soft); padding-inline: var(--gutter); font-size: var(--text-small); }
+.kk__notes { padding: clamp(42px, 6vw, 96px) var(--gutter); max-width: 680px; }
+.kk__notes .store-lede { margin-block: 24px 44px; }
+.kk__notes section + section { margin-top: 28px; }
+.kk__notes h3 { font: 400 var(--text-subhead)/1.2 var(--font-display); }
+.kk__notes section p { font-size: var(--text-body); margin-top: 6px; color: var(--ink-soft); }
+.kk__compare { padding-inline: var(--gutter); }
+@media (max-width: 799px) {
+  .kk__spread { grid-template-columns: minmax(0, 1fr); }
+  .kk__plate { position: static; }
+  .kk__plate img { height: min(48svh, 420px); }
+}
+/* ---------- compare ---------- */
+.kk__compare {
+  display: grid;
+  justify-items: start;
+  gap: clamp(24px, 3vw, 40px);
+  max-width: 1040px;
+  margin: clamp(88px, 10vw, 140px) auto 0;
+}
+.kk__compare-title {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  text-align: start;
+  text-wrap: balance;
+}
+
+.kk__table-wrap { width: 100%; overflow-x: auto; }
+.kk__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+.kk__table th,
+.kk__table td {
+  padding: 20px clamp(14px, 2vw, 28px);
+  text-align: start;
+  vertical-align: top;
+  border-bottom: 1px solid var(--hair);
+}
+.kk__table thead th {
+  font-family: var(--font-display);
+  font-size: var(--text-lead);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  border-bottom: 0;
+  padding-bottom: 14px;
+}
+.kk__table tbody th {
+  width: 22%;
+  font-weight: 600;
+  color: var(--ink);
+}
+.kk__table td { color: var(--ink-soft); }
+/* The karakovan column reads as the "featured model". */
+.kk__table .is-hero { background: var(--tile); }
+.kk__table thead .is-hero {
+  border-start-start-radius: 4px;
+  border-start-end-radius: 4px;
+  color: var(--accent);
+}
+.kk__table tbody tr:last-child .is-hero {
+  border-end-start-radius: 4px;
+  border-end-end-radius: 4px;
+}
+.kk__table tbody tr:last-child th,
+.kk__table tbody tr:last-child td { border-bottom: 0; }
+
+@media (max-width: 600px) {
+  .kk__table th, .kk__table td { padding: 12px 6px; font-size: var(--text-small); }
+  .kk__table thead th { font-size: var(--text-lead); }
+}
