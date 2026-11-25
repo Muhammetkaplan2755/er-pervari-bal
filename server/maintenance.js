@@ -28,7 +28,10 @@ export async function anonymizeStale(now = new Date()) {
     })
     done += 1
   }
-  return { anonymized: done, days }
+  // İşlem kaydı 1 yıl tutulur.
+  let auditPruned = true
+  try { await db.pruneAudit(new Date(now - 365 * DAY).toISOString()) } catch { auditPruned = false }
+  return { anonymized: done, days, auditPruned }
 }
 
 /* ---------- yedek (Supabase Storage REST, service_role) ---------- */

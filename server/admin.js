@@ -5,13 +5,17 @@
      POST /api/yonetim/yedek-al | yedekler | yedek-indir   veritabanı yedeği (gizli depo)
      POST /api/yonetim/kargo          kargoya ver: { orderId, carrier, code } → durum kargoda + takip bağlantısı
      POST /api/yonetim/iade           kart siparişini iyzico ile iptal / iade et ({ orderId, amount? })
+     POST /api/yonetim/kullanicilar | kullanici-ekle | kullanici-rol | kullanici-sil   panel kullanıcıları
+   Yetki: "personel" yalnızca kargo işlemini yapabilir; diğerleri "sahip" ister.
+   Her işlem yöneticinin e-postasıyla işlem kaydına (audit_log) geçer.
    Ortam: NETLIFY_BUILD_HOOK (Netlify → Site configuration → Build hooks; GİZLİ). */
 import { buildReport, money } from '../src/admin/report.js'
 import { clientIp, json } from './catalog-live.js'
-import { db, dbEnabled, requireAdmin } from './db.js'
+import { db, dbEnabled, requireAdmin, runAs } from './db.js'
 import { refundOrder } from './refund.js'
 import { markShipped } from './shipping.js'
 import { backupNow, listBackups, signedBackupUrl } from './maintenance.js'
+import { addUser, listUsers, removeUser, setRole } from './users.js'
 import { TEMPLATES, broadcast, notifyEnabled } from './whatsapp.js'
 
 const env = (k) => (typeof process !== 'undefined' ? process.env[k] : undefined)
@@ -63,7 +67,14 @@ export async function adminAction(request, ctx = {}) {
   if (!user) return json(401, { error: 'auth' })
   const url = new URL(request.url)
   const action = url.searchParams.get('action') || url.pathname.split('/').pop()
+  if (!STAFF_ACTIONS.has(action) && user.role !== 'sahip') return json(403, { error: 'Bu işlem için dükkân sahibi yetkisi gerekir.' })
+  return runAs(user.email || user.id, () => runAction(action, request, ctx, user))
+}
 
+const STAFF_ACTIONS = new Set(['kargo'])
+
+async function runAction(action, request, ctx, user) {
+  const readBody = async () => { try { return await request.json() } catch { return null } }
   try {
     if (action === 'yayinla') {
       const hook = env('NETLIFY_BUILD_HOOK')
@@ -97,6 +108,15 @@ export async function adminAction(request, ctx = {}) {
       let body = {}
       try { body = await request.json() } catch { return json(400, { error: 'json' }) }
       const r = await refundOrder(body.orderId, body.amount, { ip: clientIp(request, ctx) })
+      return json(r.ok ? 200 : 400, r.ok ? r : { error: r.error })
+    }
+    if (action === 'kullanicilar') return json(200, { users: await listUsers(), me: user.id })
+    if (['kullanici-ekle', 'kullanici-rol', 'kullanici-sil'].includes(action)) {
+      const body = await readBody()
+      if (!body) return json(400, { error: 'json' })
+      const r = action === 'kullanici-ekle' ? await addUser(body.email, body.role)
+        : action === 'kullanici-rol' ? await setRole(user.id, body.userId, body.role)
+          : await removeUser(user.id, body.userId)
       return json(r.ok ? 200 : 400, r.ok ? r : { error: r.error })
     }
   } catch (e) {

@@ -35,7 +35,7 @@ describe('KVKK saklama süresi', () => {
   it('eski tamamlanmamış siparişin kişi bilgisini siler, il/ilçeyi bırakır', async () => {
     stale = [{ id: 'EP1', customer: { name: 'Ali', phone: '0555', address: 'Sokak 1', email: 'a@b.c', city: 'Gaziantep', district: 'Şahinbey' } }]
     const r = await anonymizeStale(NOW)
-    expect(r).toEqual({ anonymized: 1, days: 30 })
+    expect(r).toMatchObject({ anonymized: 1, days: 30 })
     const patch = JSON.parse(calls.find((c) => c.method === 'PATCH').body)
     expect(patch.customer).toEqual({ anonymized: true, city: 'Gaziantep', district: 'Şahinbey' })
     expect(patch.ip).toBeNull()

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { CARRIERS, CATEGORIES } from '../data/catalog.js'
-import { auth, configured, costs as costsApi, images as imagesApi, inventory as inventoryApi, isDemo, orders as ordersApi, products as productsApi, serverAction, settings as settingsApi } from './api.js'
+import { audit as auditApi, auth, configured, costs as costsApi, images as imagesApi, inventory as inventoryApi, isDemo, orders as ordersApi, products as productsApi, serverAction, settings as settingsApi } from './api.js'
 import { STATUS_LABEL, buildReport, monthRange, money } from './report.js'
 import './Admin.css'
 
@@ -13,6 +13,10 @@ const TABS = [
   ['urunler', 'Ürünler'],
   ['ayarlar', 'Ayarlar'],
 ]
+/* Yetki: "sahip" her şeyi görür; "personel" yalnızca siparişler + kendi hesap güvenliği. */
+const STAFF_TABS = ['siparisler', 'ayarlar']
+const RoleContext = createContext('sahip')
+const ROLE_LABEL = { sahip: 'Sahip (her şey)', personel: 'Personel (siparişler)' }
 const STOCK = { in: 'Var', low: 'Az kaldı', out: 'Tükendi', preorder: 'Ön sipariş' }
 const PAY = { kart: 'Kart', havale: 'Havale', kapida: 'Kapıda' }
 
@@ -70,7 +74,7 @@ function Notice({ kind = 'info', children }) {
 }
 
 /* ---------- giriş ---------- */
-function Login({ recovery, onDone }) {
+function Login({ recovery, first, onDone }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [msg, setMsg] = useState(null)
@@ -108,6 +112,7 @@ function Login({ recovery, onDone }) {
   return (
     <form className="adm-login" onSubmit={submit}>
       <h1>Er Pervari Bal <span>Yönetim</span></h1>
+      {first && <Notice>İlk girişiniz: size verilen geçici şifre yerine kendi şifrenizi belirleyin (en az 8 karakter).</Notice>}
       {!recovery && (
         <label>E-posta<input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
       )}
@@ -192,6 +197,7 @@ function RefundBox({ order, onDone }) {
 
 /* ---------- siparişler ---------- */
 function OrderRow({ order, onSaved }) {
+  const role = useContext(RoleContext)
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState({ status: order.status, extra_cost: order.extra_cost ?? 0, tracking_code: order.tracking_code ?? '', admin_note: order.admin_note ?? '' })
   const [state, setState] = useState('')
@@ -249,7 +255,7 @@ function OrderRow({ order, onSaved }) {
               </p>
             )}
             {['odendi', 'onaylandi', 'kargolandi'].includes(order.status) && <ShipBox order={order} onDone={onSaved} />}
-            {order.channel === 'kart' && ['odendi', 'kargolandi', 'teslim_edildi'].includes(order.status) && (
+            {role === 'sahip' && order.channel === 'kart' && ['odendi', 'kargolandi', 'teslim_edildi'].includes(order.status) && (
               <RefundBox order={order} onDone={onSaved} />
             )}
             {order.channel === 'kart' && Number(order.refunded) > 0 && <p className="adm-muted">İade edilen: {money(order.refunded)}</p>}
@@ -623,6 +629,119 @@ function MfaChallenge({ onDone }) {
   )
 }
 
+/* ---------- panel kullanıcıları (yalnızca sahip) ---------- */
+function Users() {
+  const [{ loading, data, error }, reload] = useAsync(() => serverAction('kullanicilar'), [])
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('personel')
+  const [msg, setMsg] = useState('')
+  const [temp, setTemp] = useState(null)
+  const run = async (fn) => {
+    setMsg('İşleniyor…')
+    try { await fn(); reload() } catch (e) { setMsg(`Hata: ${e.message}`) }
+  }
+  const add = (e) => {
+    e.preventDefault()
+    setTemp(null)
+    run(async () => {
+      const r = await serverAction('kullanici-ekle', { email: email.trim(), role })
+      setEmail('')
+      if (r.password) { setTemp({ email: r.user.email, password: r.password }); setMsg('') } else setMsg('Eklendi. Bu kişinin hesabı zaten vardı; kendi şifresiyle girer.')
+    })
+  }
+  const change = (u, next) => run(async () => { await serverAction('kullanici-rol', { userId: u.user_id, role: next }); setMsg('Yetki değişti.') })
+  const remove = (u) => {
+    if (!window.confirm(`${u.email} panelden kaldırılsın mı? Hesabı silinir, bir daha giriş yapamaz.`)) return
+    run(async () => { await serverAction('kullanici-sil', { userId: u.user_id }); setMsg('Kaldırıldı.') })
+  }
+  return (
+    <div className="adm-settings">
+      <h3>Panel kullanıcıları</h3>
+      <p className="adm-muted">Personel siparişleri görür, durum ve kargo bilgisini günceller; fiyat, maliyet, stok, rapor, iade ve ayarları göremez. Yapılan her değişiklik aşağıdaki işlem kaydına kişinin adıyla geçer.</p>
+      {error && <Notice kind="warn">Kullanıcılar okunamadı: {error}</Notice>}
+      {loading ? <p className="adm-muted">Yükleniyor…</p> : (
+        <ul className="adm-numbers">
+          {(data?.users ?? []).map((u) => (
+            <li key={u.user_id}>
+              <span dir="ltr">{u.email || u.user_id}{u.user_id === data.me && ' (siz)'}</span>
+              {u.user_id === data.me ? <span className="adm-muted">{ROLE_LABEL[u.role]}</span> : (
+                <span className="adm-inline">
+                  <select aria-label={`${u.email} yetkisi`} value={u.role} onChange={(e) => change(u, e.target.value)}>
+                    {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                  <button type="button" className="adm-link" onClick={() => remove(u)}>Kaldır</button>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <form className="adm-inline" onSubmit={add}>
+        <input aria-label="Yeni kullanıcının e-postası" type="email" placeholder="calisan@ornek.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <select aria-label="Yetki" value={role} onChange={(e) => setRole(e.target.value)}>
+          {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        <button className="adm-btn">Ekle</button>
+      </form>
+      {temp && (
+        <Notice kind="ok">
+          {temp.email} için geçici şifre: <strong dir="ltr" style={{ userSelect: 'all' }}>{temp.password}</strong> — bunu kişiye kendiniz iletin (yüz yüze ya da telefonla). İlk girişte kendi şifresini belirlemesi istenir. Bu şifre bir daha gösterilmez.
+        </Notice>
+      )}
+      {msg && <p className="adm-muted" role="status">{msg}</p>}
+    </div>
+  )
+}
+
+/* ---------- işlem kaydı (yalnızca sahip) ---------- */
+const AUDIT_TBL = { products: 'Ürün', variant_costs: 'Maliyet', inventory: 'Stok', settings: 'Ayar', admins: 'Kullanıcı', orders: 'Sipariş' }
+const AUDIT_ACT = { insert: 'ekledi', update: 'değiştirdi', delete: 'sildi' }
+const AUDIT_FIELD = {
+  status: 'durum', tracking_code: 'takip no', carrier: 'kargo firması', admin_note: 'not', extra_cost: 'ek gider', refunded: 'iade',
+  variants: 'boyut/fiyat', name: 'ad', note: 'açıklama', active: 'yayında', stock: 'stok durumu', qty: 'adet', low_at: 'az kaldı sınırı',
+  cost: 'maliyet', value: 'değer', role: 'yetki', images: 'fotoğraflar', customer: 'müşteri bilgisi', ip: 'IP', sort: 'sıra',
+}
+const auditValue = (k, v) => {
+  if (v == null || v === '') return '—'
+  if (k === 'status') return STATUS_LABEL[v] ?? v
+  if (typeof v === 'boolean') return v ? 'evet' : 'hayır'
+  if (typeof v === 'object') return '(liste)'
+  return String(v).slice(0, 40)
+}
+const auditSummary = (e) => (e.action !== 'update' ? '' : Object.entries(e.changes ?? {})
+  .map(([k, v]) => (Array.isArray(v) ? `${AUDIT_FIELD[k] ?? k}: ${auditValue(k, v[0])} → ${auditValue(k, v[1])}` : `${AUDIT_FIELD[k] ?? k} ${v}`))
+  .join(' · '))
+
+function AuditLog() {
+  const [{ loading, data, error }, reload] = useAsync(() => auditApi.list(100), [])
+  return (
+    <div className="adm-settings">
+      <h3>İşlem kaydı</h3>
+      <p className="adm-muted">Son 100 değişiklik: kim, ne zaman, neyi değiştirdi. “sistem” otomatik işlemlerdir (ödeme sonucu, gece temizliği). Müşterinin kişisel bilgisi kayda yazılmaz; kayıt 1 yıl saklanır.</p>
+      {error && <Notice kind="warn">İşlem kaydı okunamadı: {error}</Notice>}
+      {loading ? <p className="adm-muted">Yükleniyor…</p> : (
+        <div className="adm-table-wrap">
+          <table className="adm-table">
+            <thead><tr><th>Zaman</th><th>Kim</th><th>Ne</th><th>Ayrıntı</th></tr></thead>
+            <tbody>
+              {(data ?? []).map((e) => (
+                <tr key={e.id}>
+                  <td>{dt.format(new Date(e.at))}</td>
+                  <td dir="ltr">{e.actor}</td>
+                  <td>{AUDIT_TBL[e.tbl] ?? e.tbl} {e.row_id} {AUDIT_ACT[e.action] ?? e.action}</td>
+                  <td>{auditSummary(e)}</td>
+                </tr>
+              ))}
+              {(data ?? []).length === 0 && <tr><td colSpan={4} className="adm-muted">Henüz kayıt yok.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="adm-actions"><button type="button" className="adm-btn" onClick={reload}>Yenile</button></div>
+    </div>
+  )
+}
+
 /* Muhasebe için ayın siparişleri (Excel'de açılır: UTF-8 BOM + noktalı virgül). */
 function downloadCsv(list, ym) {
   const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
@@ -742,6 +861,17 @@ function MfaSetup() {
 
 /* ---------- ayarlar ---------- */
 function Settings() {
+  const role = useContext(RoleContext)
+  if (role === 'sahip') return <OwnerSettings />
+  return (
+    <section aria-labelledby="adm-settings">
+      <header className="adm-bar"><h2 id="adm-settings">Hesabım</h2></header>
+      <MfaSetup />
+    </section>
+  )
+}
+
+function OwnerSettings() {
   const [{ loading, data, error }, reload] = useAsync(() => settingsApi.get(), [])
   const [numbers, setNumbers] = useState([])
   const [weekly, setWeekly] = useState(true)
@@ -814,6 +944,8 @@ function Settings() {
         </div>
       )}
       <MfaSetup />
+      <Users />
+      <AuditLog />
       <Backups />
     </section>
   )
@@ -841,7 +973,7 @@ export default function Admin() {
   useEffect(() => {
     if (!session) return setAdmin(null)
     let live = true
-    auth.isAdmin(session.user.id).then((v) => live && setAdmin(v), () => live && setAdmin(false))
+    auth.role(session.user.id).then((r) => live && setAdmin(r || false), () => live && setAdmin(false))
     return () => { live = false }
   }, [session])
 
@@ -867,7 +999,9 @@ export default function Admin() {
     history.replaceState(null, '', `#${k}`)
   }
 
-  const body = useMemo(() => ({ siparisler: <Orders />, rapor: <Report />, urunler: <Products />, ayarlar: <Settings /> })[tab], [tab])
+  const tabs = admin === 'personel' ? TABS.filter(([k]) => STAFF_TABS.includes(k)) : TABS
+  const current = tabs.some(([k]) => k === tab) ? tab : 'siparisler'
+  const body = useMemo(() => ({ siparisler: <Orders />, rapor: <Report />, urunler: <Products />, ayarlar: <Settings /> })[current], [current])
 
   if (!configured) {
     return (
@@ -877,7 +1011,8 @@ export default function Admin() {
     )
   }
   if (session === undefined) return <div className="adm adm--center"><p className="adm-muted">Yükleniyor…</p></div>
-  if (!session || recovery) return <div className="adm adm--center"><Login recovery={recovery} onDone={() => setRecovery(false)} /></div>
+  const first = Boolean(session?.user?.user_metadata?.gecici_sifre)
+  if (!session || recovery || first) return <div className="adm adm--center"><Login recovery={recovery || first} first={first} onDone={() => setRecovery(false)} /></div>
   if (admin === null || (admin && needMfa === null)) return <div className="adm adm--center"><p className="adm-muted">Yetki kontrol ediliyor…</p></div>
   if (admin && needMfa) return <div className="adm adm--center"><MfaChallenge onDone={() => setNeedMfa(false)} /></div>
   if (!admin) {
@@ -894,8 +1029,8 @@ export default function Admin() {
       <header className="adm-top">
         <strong>Er Pervari Bal <span>Yönetim</span></strong>
         <nav aria-label="Panel bölümleri">
-          {TABS.map(([k, label]) => (
-            <button key={k} type="button" className={tab === k ? 'is-on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => go(k)}>{label}</button>
+          {tabs.map(([k, label]) => (
+            <button key={k} type="button" className={current === k ? 'is-on' : ''} aria-current={current === k ? 'page' : undefined} onClick={() => go(k)}>{label}</button>
           ))}
         </nav>
         <span className="adm-top__user">{session.user.email}</span>
@@ -903,7 +1038,7 @@ export default function Admin() {
         <button type="button" className="adm-link" onClick={auth.signOut}>Çıkış</button>
       </header>
       {isDemo && <p className="adm-demo">DENEME MODU — örnek veriler; hiçbir şey kaydedilmez, mesaj gönderilmez.</p>}
-      <main className="adm-main">{body}</main>
+      <main className="adm-main"><RoleContext.Provider value={admin}>{body}</RoleContext.Provider></main>
     </div>
   )
 }

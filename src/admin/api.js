@@ -27,8 +27,14 @@ const real = {
     signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }).then(must),
     signOut: () => supabase.auth.signOut(),
     resetPassword: (email) => supabase.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/yonetim` }).then(must),
-    updatePassword: (password) => supabase.auth.updateUser({ password }).then(must),
-    isAdmin: async (userId) => (must(await supabase.from('admins').select('user_id').eq('user_id', userId))).length > 0,
+    // Geçici şifreyle açılan hesapta işaret de kaldırılır (ilk girişte şifre değiştirme zorunlu).
+    updatePassword: (password) => supabase.auth.updateUser({ password, data: { gecici_sifre: null } }).then(must),
+    /* Panel yetkisi: 'sahip' | 'personel' | null (yönetici değil). */
+    // (role sütunu yoksa — migration öncesi — tek yönetici sahiptir; sunucu yine kendisi denetler.)
+    role: async (userId) => {
+      const row = must(await supabase.from('admins').select('*').eq('user_id', userId))[0]
+      return row ? (row.role ?? 'sahip') : null
+    },
     /* İki adımlı doğrulama (TOTP: Google Authenticator, Microsoft Authenticator vb.). */
     mfa: {
       level: async () => must(await supabase.auth.mfa.getAuthenticatorAssuranceLevel()),
@@ -62,6 +68,10 @@ const real = {
     between: async (fromIso, toIso) =>
       must(await supabase.from('orders').select('*').gte('created_at', fromIso).lt('created_at', toIso).order('created_at', { ascending: false })),
     update: async (id, patch) => must(await supabase.from('orders').update(patch).eq('id', id).select().single()),
+  },
+  /* İşlem kaydı (yalnızca sahip okuyabilir; RLS). */
+  audit: {
+    list: async (limit = 100) => must(await supabase.from('audit_log').select('*').order('at', { ascending: false }).limit(limit)),
   },
   settings: {
     get: async () => Object.fromEntries(must(await supabase.from('settings').select('key,value')).map((r) => [r.key, r.value])),
@@ -98,4 +108,4 @@ const api = DEMO ? makeDemo() : real
 
 export const configured = DEMO || Boolean(supabase)
 export const isDemo = DEMO
-export const { auth, products, costs, inventory, orders, settings, images, serverAction } = api
+export const { auth, products, costs, inventory, orders, audit, settings, images, serverAction } = api

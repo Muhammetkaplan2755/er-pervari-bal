@@ -198,3 +198,11 @@ Caveman reviewer iki tur çalıştı; bulgular düzeltildi.
 - Panel Siparişler → "CSV indir (muhasebe)": ayın siparişleri, Excel uyumlu (UTF-8 BOM, noktalı virgül).
 - Testler: `tests/maintenance.test.js` (toplam 74 test).
 - Kalan (hesap ister): Cloudflare Turnstile bot koruması, hata izleme (PostHog, çerez onayından sonra), çalışma süresi izleme (UptimeRobot vb.).
+
+## Roller ve işlem kaydı (Aşama 4.1–4.2) — 2026-11-26
+- Migration `supabase/migrations/20261126_01_roller_kayit.sql` ÇALIŞTIRILMALI. Çalıştırılmadan sunucu herkesi "personel" sayar (iade, yedek, kullanıcı işlemleri kapalı kalır).
+- Roller (`admins.role`): **sahip** her şey; **personel** yalnızca Siparişler (durum, kargo, not) + kendi iki adımlı doğrulaması. Fiyat/maliyet/stok/ayar/fotoğraf yazma RLS'te `is_owner()`; sunucuda yalnızca `kargo` personele açık (server/admin.js `STAFF_ACTIONS`). Rol okunamazsa sunucu "personel" sayar (güvenli taraf).
+- Kullanıcı ekleme (server/users.js, Ayarlar → Panel kullanıcıları): e-posta gönderilmez (Supabase'in hazır e-postası yalnızca proje üyelerine gider); hesap geçici şifreyle açılır, şifre sahibe bir kez gösterilir, çalışan ilk girişte kendi şifresini belirlemek zorunda (`user_metadata.gecici_sifre`). Kendi yetkisini değiştirme / son sahibi kaldırma engelli. Kaldırınca önce yetki satırı, sonra hesap silinir.
+- İşlem kaydı (`audit_log`, tetikleyici `audit_trg`): ürün, maliyet, stok, ayar, kullanıcı tablolarında ekle/değiştir/sil; siparişte değiştir/sil. Kim: panelden ise oturumun e-postası; sunucu işlemlerinde `runAs()` (server/db.js, AsyncLocalStorage) ile `x-actor` başlığı — yalnızca service_role'den kabul edilir; otomatik işlemler "sistem". Müşteri adı/telefon/adres/IP kayda yazılmaz ("değişti"). Zincirleme değişiklikler (siparişle düşen stok) yazılmaz. 1 yıl saklanır (bakım görevi). Panel: Ayarlar → İşlem kaydı (son 100).
+- Deneme: `/yonetim?demo` (sahip), `/yonetim?demo=personel`.
+- Testler: `tests/users.test.js` (toplam 83 test).

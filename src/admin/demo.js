@@ -17,7 +17,14 @@ const db = {
   settings: { notify_numbers: ['905550000001'], weekly_report: true },
   inventory: [{ product_id: 'suzme', variant_id: '1kg', qty: 12, low_at: 3 }, { product_id: 'polen', variant_id: '250g', qty: 2, low_at: 3 }],
   orders: [],
+  users: [{ user_id: 'demo', role: 'sahip', email: 'demo@ornek.com', created_at: '2026-11-20T09:00:00Z' }],
+  audit: [
+    { id: 2, at: '2026-11-24T14:05:00Z', actor: 'demo@ornek.com', tbl: 'products', row_id: 'suzme', action: 'update', changes: { active: [true, false] } },
+    { id: 1, at: '2026-11-24T10:00:00Z', actor: 'sistem', tbl: 'orders', row_id: 'DEMO0002', action: 'update', changes: { status: ['odeme_bekliyor', 'odendi'], ip: 'değişti' } },
+  ],
 }
+let auditId = 10
+const log = (tbl, rowId, action, changes) => db.audit.unshift({ id: ++auditId, at: new Date().toISOString(), actor: 'demo@ornek.com', tbl, row_id: rowId, action, changes })
 
 /* Bu ayın içine dağılmış örnek siparişler. */
 ;(function seedOrders() {
@@ -75,7 +82,8 @@ return {
     signOut: async () => { session = null; mfaPassed = false; emit('SIGNED_OUT') },
     resetPassword: async () => wait(),
     updatePassword: async () => wait(),
-    isAdmin: async () => true,
+    // /yonetim?demo=personel → personel görünümü
+    role: async () => (new URLSearchParams(location.search).get('demo') === 'personel' ? 'personel' : 'sahip'),
     // Deneme: kod "123456" kabul edilir.
     mfa: {
       level: async () => (mfaFactors.length && !mfaPassed ? { currentLevel: 'aal1', nextLevel: 'aal2' } : { currentLevel: mfaFactors.length ? 'aal2' : 'aal1', nextLevel: mfaFactors.length ? 'aal2' : 'aal1' }),
@@ -132,9 +140,14 @@ return {
     update: async (id, patch) => {
       await wait()
       const o = db.orders.find((x) => x.id === id)
+      const changes = Object.fromEntries(Object.entries(patch).filter(([k, v]) => o[k] !== v).map(([k, v]) => [k, [o[k] ?? null, v]]))
+      if (Object.keys(changes).length) log('orders', id, 'update', changes)
       Object.assign(o, patch)
       return clone(o)
     },
+  },
+  audit: {
+    list: async (limit = 100) => { await wait(); return clone(db.audit.slice(0, limit)) },
   },
   settings: {
     get: async () => clone(db.settings),
@@ -150,6 +163,25 @@ return {
     if (action === 'yedekler') return { files: [{ name: '2026-11-23-02-00-00.json' }] }
     if (action === 'yedek-al') return { counts: { orders: db.orders.length, products: db.products.length } }
     if (action === 'yedek-indir') return { url: 'about:blank' }
+    if (action === 'kullanicilar') return { users: clone(db.users), me: 'demo' }
+    if (action === 'kullanici-ekle') {
+      if (db.users.some((u) => u.email === body.email)) throw new Error('Bu kişi zaten panel kullanıcısı.')
+      const u = { user_id: `u${db.users.length + 1}`, role: body.role, email: body.email, created_at: new Date().toISOString() }
+      db.users.push(u)
+      log('admins', u.user_id, 'insert', { email: u.email, role: u.role })
+      return { ok: true, user: clone(u), password: 'DenemeGecici23' }
+    }
+    if (action === 'kullanici-rol') {
+      const u = db.users.find((x) => x.user_id === body.userId)
+      log('admins', u.user_id, 'update', { role: [u.role, body.role] })
+      u.role = body.role
+      return { ok: true, user: clone(u) }
+    }
+    if (action === 'kullanici-sil') {
+      db.users = db.users.filter((x) => x.user_id !== body.userId)
+      log('admins', body.userId, 'delete', {})
+      return { ok: true }
+    }
     if (action === 'kargo') {
       const o = db.orders.find((x) => x.id === body.orderId)
       Object.assign(o, { status: 'kargolandi', carrier: body.carrier, tracking_code: String(body.code).replace(/\s+/g, '') })

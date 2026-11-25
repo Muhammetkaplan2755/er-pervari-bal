@@ -150,6 +150,13 @@ section > .adm-editor { margin-bottom: 16px; padding: 16px; border: 1px solid va
 .adm-numbers li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 10px; background: #faf6ef; font-variant-numeric: tabular-nums; }
 .adm-inline { display: flex; gap: 8px; }
 .adm-inline input { flex: 1; }
+/* Kullanıcılar: e-posta + yetki seçimi dar ekranda alt alta iner */
+.adm-settings { min-width: 0; }
+.adm-numbers li { flex-wrap: wrap; align-items: center; }
+.adm-numbers li > span { min-width: 0; overflow-wrap: anywhere; }
+.adm-settings .adm-inline { flex-wrap: wrap; align-items: center; }
+.adm-settings .adm-inline input { min-width: 12rem; }
+.adm-settings select { max-width: 100%; min-width: 0; }
 
 @media (max-width: 640px) {
   .adm-top__user { display: none; }
