@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CATEGORIES } from '../data/catalog.js'
-import { auth, configured, costs as costsApi, images as imagesApi, isDemo, orders as ordersApi, products as productsApi, serverAction, settings as settingsApi } from './api.js'
+import { auth, configured, costs as costsApi, images as imagesApi, inventory as inventoryApi, isDemo, orders as ordersApi, products as productsApi, serverAction, settings as settingsApi } from './api.js'
 import { STATUS_LABEL, buildReport, monthRange, money } from './report.js'
 import './Admin.css'
 
@@ -367,9 +367,11 @@ function Photos({ productId, list, onChange }) {
   )
 }
 
-function ProductEditor({ product, costRows, isNew, onSaved, onCancel }) {
+function ProductEditor({ product, costRows, stockRows = [], isNew, onSaved, onCancel }) {
   const [p, setP] = useState(() => structuredClone(product))
   const [cost, setCost] = useState(() => Object.fromEntries(product.variants.map((v) => [v.id, costRows.find((c) => c.product_id === product.id && c.variant_id === v.id)?.cost ?? ''])))
+  // Stok adedi: boş = takip yok (sınırsız). Adet girilirse satıldıkça kendiliğinden düşer.
+  const [stock, setStock] = useState(() => Object.fromEntries(product.variants.map((v) => [v.id, stockRows.find((s) => s.product_id === product.id && s.variant_id === v.id)?.qty ?? ''])))
   const [state, setState] = useState('')
   const photoId = isNew ? (p.id || slug(trOf(p.name))) : p.id
 
@@ -392,6 +394,10 @@ function ProductEditor({ product, costRows, isNew, onSaved, onCancel }) {
       await Promise.allSettled((product.images ?? []).filter((u) => !kept.has(u)).map((u) => imagesApi.remove(u)))
       const costList = variants.filter((v) => cost[v.id] !== '' && cost[v.id] != null).map((v) => ({ product_id: id, variant_id: v.id, cost: Number(cost[v.id]) || 0 }))
       await costsApi.saveMany(costList)
+      const tracked = variants.filter((v) => stock[v.id] !== '' && stock[v.id] != null)
+      await inventoryApi.save(tracked.map((v) => ({ product_id: id, variant_id: v.id, qty: Math.max(0, Math.floor(Number(stock[v.id]) || 0)) })))
+      const untracked = stockRows.filter((s) => s.product_id === id && !tracked.some((v) => v.id === s.variant_id)).map((s) => s.variant_id)
+      await inventoryApi.remove(id, untracked)
       onSaved(saved, costList)
       setState('ok')
     } catch (e) {
@@ -430,13 +436,14 @@ function ProductEditor({ product, costRows, isNew, onSaved, onCancel }) {
       <Photos productId={photoId} list={p.images ?? []} onChange={(list) => setP((x) => ({ ...x, images: list }))} />
 
       <table className="adm-table adm-variants">
-        <thead><tr><th>Boyut</th><th className="adm-num">Satış fiyatı (₺)</th><th className="adm-num">Birim maliyet (₺)</th><th><span className="sr-only">Sil</span></th></tr></thead>
+        <thead><tr><th>Boyut</th><th className="adm-num">Satış fiyatı (₺)</th><th className="adm-num">Birim maliyet (₺)</th><th className="adm-num">Stok adedi</th><th><span className="sr-only">Sil</span></th></tr></thead>
         <tbody>
           {p.variants.map((v, i) => (
             <tr key={i}>
               <td><input aria-label="Boyut" value={trOf(v.label)} onChange={(e) => setVariant(i, { label: withTr(v.label, e.target.value) })} placeholder="ör. 500 g" /></td>
               <td><input aria-label="Satış fiyatı" type="number" min="0" step="1" value={v.price} onChange={(e) => setVariant(i, { price: e.target.value })} /></td>
               <td><input aria-label="Birim maliyet" type="number" min="0" step="0.01" value={cost[v.id] ?? ''} disabled={!v.id} placeholder={v.id ? '' : 'önce kaydet'} onChange={(e) => setCost({ ...cost, [v.id]: e.target.value })} /></td>
+              <td><input aria-label="Stok adedi" type="number" min="0" step="1" value={stock[v.id] ?? ''} disabled={!v.id} placeholder={v.id ? 'takip yok' : 'önce kaydet'} onChange={(e) => setStock({ ...stock, [v.id]: e.target.value })} /></td>
               <td><button type="button" className="adm-link" disabled={p.variants.length === 1} onClick={() => setP({ ...p, variants: p.variants.filter((_, j) => j !== i) })}>Sil</button></td>
             </tr>
           ))}
@@ -458,8 +465,8 @@ const EMPTY_PRODUCT = { id: '', category: 'bal', stock: 'in', name: '', note: ''
 
 function Products() {
   const [{ loading, data, error }, reload] = useAsync(async () => {
-    const [p, c] = await Promise.all([productsApi.list(), costsApi.list()])
-    return { p, c }
+    const [p, c, s] = await Promise.all([productsApi.list(), costsApi.list(), inventoryApi.list().catch(() => [])])
+    return { p, c, s }
   }, [])
   const [editing, setEditing] = useState(null)
   const [publish, setPublish] = useState('')
@@ -482,7 +489,7 @@ function Products() {
         <button type="button" className="adm-btn adm-btn--primary" onClick={doPublish}>Siteye yayınla</button>
         {publish && <span className="adm-muted">{publish}</span>}
       </header>
-      <Notice>Fiyat değişikliği ödeme ekranında hemen geçerli olur; ürün sayfalarında görünmesi için “Siteye yayınla”ya basın. Birim maliyet yalnızca raporda kullanılır, sitede görünmez.</Notice>
+      <Notice>Fiyat değişikliği ödeme ekranında hemen geçerli olur; ürün sayfalarında görünmesi için “Siteye yayınla”ya basın. Birim maliyet yalnızca raporda kullanılır, sitede görünmez. Stok adedi girilen boyut satıldıkça kendiliğinden düşer, bitince ürün “Tükendi” olur; boş bırakılan boyut takip edilmez.</Notice>
       {error && <Notice kind="error">{error}</Notice>}
       {editing === '__new' && (
         <ProductEditor product={EMPTY_PRODUCT} costRows={[]} isNew onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); reload() }} />
@@ -493,12 +500,15 @@ function Products() {
             <li key={p.id} className={p.active ? '' : 'is-hidden'}>
               <div className="adm-products__head">
                 <strong>{trOf(p.name)}</strong>
-                <span className="adm-muted">{p.variants.map((v) => `${trOf(v.label)}: ${money(v.price)}`).join(' · ')}</span>
+                <span className="adm-muted">{p.variants.map((v) => {
+                  const st = (data.s ?? []).find((x) => x.product_id === p.id && x.variant_id === v.id)
+                  return `${trOf(v.label)}: ${money(v.price)}${st ? ` (${st.qty} adet)` : ''}`
+                }).join(' · ')}</span>
                 <span className={`adm-pill adm-pill--${p.stock}`}>{STOCK[p.stock]}</span>
                 {!p.active && <span className="adm-pill">Gizli</span>}
                 <button type="button" className="adm-link" aria-expanded={editing === p.id} onClick={() => setEditing(editing === p.id ? null : p.id)}>{editing === p.id ? 'Kapat' : 'Düzenle'}</button>
               </div>
-              {editing === p.id && <ProductEditor product={p} costRows={data.c} onSaved={() => reload()} />}
+              {editing === p.id && <ProductEditor product={p} costRows={data.c} stockRows={data.s ?? []} onSaved={() => reload()} />}
             </li>
           ))}
         </ul>

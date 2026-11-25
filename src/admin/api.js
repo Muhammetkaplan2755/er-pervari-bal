@@ -51,6 +51,13 @@ const real = {
     list: async () => must(await supabase.from('variant_costs').select('*')),
     saveMany: async (rows) => (rows.length ? must(await supabase.from('variant_costs').upsert(rows)) : null),
   },
+  /* Stok adedi (boyut başına). Satırı olmayan boyut takip edilmez. */
+  inventory: {
+    list: async () => must(await supabase.from('inventory').select('*')),
+    save: async (rows) => (rows.length ? must(await supabase.from('inventory').upsert(rows)) : null),
+    remove: async (productId, variantIds) =>
+      (variantIds.length ? must(await supabase.from('inventory').delete().eq('product_id', productId).in('variant_id', variantIds)) : null),
+  },
   orders: {
     between: async (fromIso, toIso) =>
       must(await supabase.from('orders').select('*').gte('created_at', fromIso).lt('created_at', toIso).order('created_at', { ascending: false })),
@@ -87,4 +94,4 @@ const api = DEMO ? makeDemo() : real
 
 export const configured = DEMO || Boolean(supabase)
 export const isDemo = DEMO
-export const { auth, products, costs, orders, settings, images, serverAction } = api
+export const { auth, products, costs, inventory, orders, settings, images, serverAction } = api

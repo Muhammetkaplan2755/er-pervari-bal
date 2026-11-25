@@ -55,6 +55,7 @@ export async function recordWhatsAppOrder(request, ctx = {}) {
     else console.error('bildirim tavanı aşıldı, mesaj gönderilmedi', id)
     return json(201, { ok: true })
   } catch (e) {
+    if (String(e.message).includes('stok_yetersiz')) return json(409, { error: 'stock' })
     if (String(e.message).includes(' 409')) return json(409, { error: 'duplicate' })
     console.error('whatsapp siparişi', e.message)
     return json(502, { error: 'db' })

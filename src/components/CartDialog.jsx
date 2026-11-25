@@ -163,8 +163,8 @@ export default function CartDialog() {
         }),
       })
       const out = await res.json().catch(() => ({}))
-      if (out.error === 'price_changed') {
-        setPayError(t('pay.priceChanged'))
+      if (out.error === 'price_changed' || out.error === 'stock') {
+        setPayError(t(out.error === 'stock' ? 'pay.outOfStock' : 'pay.priceChanged'))
         setPaying(false)
         return
       }

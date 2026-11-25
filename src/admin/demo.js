@@ -15,6 +15,7 @@ const db = {
     { product_id: 'suzme', variant_id: '1kg', cost: 480 },
   ],
   settings: { notify_numbers: ['905550000001'], weekly_report: true },
+  inventory: [{ product_id: 'suzme', variant_id: '1kg', qty: 12, low_at: 3 }, { product_id: 'polen', variant_id: '250g', qty: 2, low_at: 3 }],
   orders: [],
 }
 
@@ -114,6 +115,17 @@ return {
         else db.costs.push(r)
       }
     },
+  },
+  inventory: {
+    list: async () => clone(db.inventory),
+    save: async (rows) => {
+      for (const r of rows) {
+        const i = db.inventory.findIndex((x) => x.product_id === r.product_id && x.variant_id === r.variant_id)
+        if (i >= 0) db.inventory[i] = { ...db.inventory[i], ...r }
+        else db.inventory.push({ low_at: 3, ...r })
+      }
+    },
+    remove: async (pid, vids) => { db.inventory = db.inventory.filter((x) => !(x.product_id === pid && vids.includes(x.variant_id))) },
   },
   orders: {
     between: async (from, to) => { await wait(); return clone(db.orders.filter((o) => o.created_at >= from && o.created_at < to)) },

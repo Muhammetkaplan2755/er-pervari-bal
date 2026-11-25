@@ -161,6 +161,8 @@ export async function startPayment(request, ctx = {}) {
         ip,
       })
     } catch (e) {
+      // Veritabanı stoğu düşemediyse (son ürünü başkası almış) ödeme hiç başlamaz.
+      if (String(e.message).includes('stok_yetersiz')) return json(409, { error: 'stock' })
       console.error('sipariş kaydı', e.message)
       return json(502, { error: 'db' })
     }

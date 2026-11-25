@@ -208,6 +208,7 @@ export const S = {
   'pay.starting': { tr: 'Ödeme sayfası açılıyor…', en: 'Opening the payment page…', ar: 'جارٍ فتح صفحة الدفع…' },
   'pay.secure': { tr: 'Kart bilgileriniz iyzico’nun güvenli sayfasında, 3D Secure ile alınır; bu siteye gelmez.', en: 'Your card is entered on iyzico’s secure page with 3D Secure; it never reaches this site.', ar: 'تُدخل بطاقتك في صفحة iyzico الآمنة مع 3D Secure، ولا تصل إلى هذا الموقع.' },
   'pay.startError': { tr: 'Ödeme sayfası açılamadı. Biraz sonra tekrar deneyin ya da WhatsApp ile sipariş verin.', en: 'The payment page could not open. Try again shortly or order on WhatsApp.', ar: 'تعذّر فتح صفحة الدفع. حاول بعد قليل أو اطلب عبر واتساب.' },
+  'pay.outOfStock': { tr: 'Sepetinizdeki bir ürün az önce tükendi. Sepeti kontrol edip tekrar deneyin ya da WhatsApp’tan yazın.', en: 'An item in your cart just sold out. Check your cart and try again, or message us on WhatsApp.', ar: 'نفد أحد المنتجات في سلتك للتو. تحقق من السلة وحاول مجددًا أو راسلنا عبر واتساب.' },
   'pay.priceChanged': { tr: 'Fiyatlar az önce güncellendi. Sayfayı yenileyip sepetinizi kontrol edin.', en: 'Prices were just updated. Refresh the page and check your cart.', ar: 'تم تحديث الأسعار للتو. حدّث الصفحة وتحقق من سلتك.' },
   'pay.okEyebrow': { tr: 'Ödeme alındı', en: 'Payment received', ar: 'تم استلام الدفع' },
   'pay.okTitle1': { tr: 'Siparişiniz', en: 'Your order is', ar: 'تم استلام' },
