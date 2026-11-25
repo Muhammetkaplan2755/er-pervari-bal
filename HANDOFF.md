@@ -206,3 +206,8 @@ Caveman reviewer iki tur çalıştı; bulgular düzeltildi.
 - İşlem kaydı (`audit_log`, tetikleyici `audit_trg`): ürün, maliyet, stok, ayar, kullanıcı tablolarında ekle/değiştir/sil; siparişte değiştir/sil. Kim: panelden ise oturumun e-postası; sunucu işlemlerinde `runAs()` (server/db.js, AsyncLocalStorage) ile `x-actor` başlığı — yalnızca service_role'den kabul edilir; otomatik işlemler "sistem". Müşteri adı/telefon/adres/IP kayda yazılmaz ("değişti"). Zincirleme değişiklikler (siparişle düşen stok) yazılmaz. 1 yıl saklanır (bakım görevi). Panel: Ayarlar → İşlem kaydı (son 100).
 - Deneme: `/yonetim?demo` (sahip), `/yonetim?demo=personel`.
 - Testler: `tests/users.test.js` (toplam 83 test).
+
+## E-fatura ve kargo entegrasyonu (Aşama 4.3–4.4) — ARAŞTIRILDI, KARAR SAHİBİN (2026-11-26)
+- E-arşiv: kaynakların çoğuna göre 2026'dan itibaren e-Fatura mükellefi olmayanlar da tutardan bağımsız e-Arşiv kesmeli; basit usul/işletme hesabı için 3.000 TL altı kâğıt fatura istisnası 31.12.2026'ya kadar (TEYİT: mali müşavir — kaynaklar çelişkili). İnternet satışında e-Fatura eşiği 500 bin TL olarak geçiyor (TEYİT).
+- Seçenek: muhasebecinin kullandığı programa göre (Paraşüt, BizimHesap, Logo İşbaşı vb.) siparişten otomatik e-arşiv. Paraşüt'te kurulum ücreti yok, fatura başına e-kontör; API belgesi/erişimi destekten teyit edilmeli.
+- Kargo: Geliver (REST API + resmi JS SDK, Aras/Yurtiçi/Sürat/PTT/HepsiJet/MNG, otomatik etiket, durum webhook'u) en iyi belgelenen; Kargonomi'de HMAC imzalı webhook var. Fiyatlar firmalardan sorulmalı. Mevcut panelde elle takip no girişi çalışıyor; entegrasyon hesap açılınca `server/shipping.js` üzerine eklenir.
