@@ -147,6 +147,9 @@ return {
   serverAction: async (action, body) => {
     await wait(400)
     if (action === 'yayinla') return { ok: true }
+    if (action === 'yedekler') return { files: [{ name: '2026-11-23-02-00-00.json' }] }
+    if (action === 'yedek-al') return { counts: { orders: db.orders.length, products: db.products.length } }
+    if (action === 'yedek-indir') return { url: 'about:blank' }
     if (action === 'kargo') {
       const o = db.orders.find((x) => x.id === body.orderId)
       Object.assign(o, { status: 'kargolandi', carrier: body.carrier, tracking_code: String(body.code).replace(/\s+/g, '') })

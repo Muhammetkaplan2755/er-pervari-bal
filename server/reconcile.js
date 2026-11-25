@@ -9,6 +9,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { json } from './catalog-live.js'
 import { db, dbEnabled } from './db.js'
 import { settleByToken } from './payment.js'
+import { alertOwner } from './whatsapp.js'
 
 const MIN = 60 * 1000
 const env = (k) => (typeof process !== 'undefined' ? process.env[k] : undefined)
@@ -35,7 +36,7 @@ export async function reconcilePayments(now = new Date()) {
     else if (r.reached && (abandon || r.paymentStatus === 'FAILURE')) summary.failed += 1
     else summary.waiting += 1
   }
-  if (summary.paid) console.log('eşleştirme: dönüşü gelmeyen ödeme(ler) bulundu ve kaydedildi', summary.paid)
+  if (summary.paid) await alertOwner(`ℹ️ Eşleştirme: müşterisi siteye dönmeyen ${summary.paid} ödenmiş sipariş bulundu ve kaydedildi.`)
   return summary
 }
 

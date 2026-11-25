@@ -186,3 +186,15 @@ Caveman reviewer iki tur çalıştı; bulgular düzeltildi.
 - Stok: migration `20261125_01_stok.sql` (çalıştırıldı). `inventory` tablosu + `orders_stock` tetikleyicisi (kayıtta düşer, iptal/başarısız/iadede geri ekler, yetmezse `stok_yetersiz` → sunucu 409 `stock`), ürün durumu adetten (≤ low_at "az kaldı", 0 "tükendi"; ön siparişe dokunmaz). Panelde boyut başına "Stok adedi" (boş = takip yok).
 - Gerçek veritabanında denendi: stok 1 → 1. sipariş adet 0 / "tükendi", 2. sipariş `stok_yetersiz`, iptal → adet 1 / "az kaldı"; test stoğu silindi, ürün durumu geri alındı, test siparişi `iptal`.
 - Not: stok durumu değişince site (statik) "Siteye yayınla" ile güncellenir; ödeme ekranı ise canlı veritabanına bakar, tükenmiş ürün satılamaz.
+
+## İade ve kargo (Aşama 2.4–2.5) — 2026-11-25
+- `server/refund.js` + panelde "İade / iptal" kutusu: aynı gün tam iade önce iyzico `/payment/cancel`, olmazsa `/v2/payment/refund`; kısmi iade desteklenir, `orders.refunded` (migration `20261125_02_iade.sql`, çalıştırıldı). Rapor geliri iadeyi düşer. iyzico sandbox'ta kısmi iade + iptal denendi.
+- `server/shipping.js` + panelde kargo kutusu: firma + takip no → durum "kargolandı", takip bağlantısı, müşteriye e-posta (Brevo açıksa) ve WhatsApp mesajı düğmesi (migration `20261125_03_kargo.sql`, çalıştırıldı).
+
+## İzleme, yedek, KVKK temizliği (Aşama 3) — 2026-11-25
+- Telegram bildirimi (`server/whatsapp.js`): `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_IDS` girilince sipariş bildirimi WhatsApp'a ek olarak Telegram'a da gider (müşteri adı/telefonu/adresi YOK). `alertOwner()` kritik uyarılar: iyzico imza uyuşmazlığı, ödeme alındı ama kaydedilemedi, eşleştirmenin bulduğu ödemeler, yedek hatası. Telegram yoksa yalnızca sunucu kaydına düşer. Kurulum: @BotFather → /newbot → anahtar `.env.development.local`'a → bota bir mesaj yaz → `npm run kontrol` sohbet kimliğini gösterir.
+- `server/maintenance.js`: `anonymizeStale()` her gece (netlify/functions/bakim-gunluk.mjs) — tamamlanmamış (beklemede/başarısız/iptal/ödeme bekliyor) siparişlerin kişi bilgisi `RETENTION_DAYS` (varsayılan 30, en az 7) gün sonra silinir, il/ilçe kalır. Satışı tamamlananlar dokunulmaz. KVKK metni güncellendi (süre TEYİT: avukat).
+- Yedek: her pazar 02:00 UTC (yedek-haftalik.mjs) tüm tablolar gizli `yedekler` deposuna JSON, son 8 tutulur; panel Ayarlar → Yedekler (listele, şimdi al, 5 dk'lık indirme bağlantısı). Migration `20261125_04_yedek.sql` ÇALIŞTIRILMALI.
+- Panel Siparişler → "CSV indir (muhasebe)": ayın siparişleri, Excel uyumlu (UTF-8 BOM, noktalı virgül).
+- Testler: `tests/maintenance.test.js` (toplam 74 test).
+- Kalan (hesap ister): Cloudflare Turnstile bot koruması, hata izleme (PostHog, çerez onayından sonra), çalışma süresi izleme (UptimeRobot vb.).

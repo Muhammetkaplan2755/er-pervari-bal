@@ -2,6 +2,7 @@
      POST /api/yonetim/yayinla        siteyi yeni fiyatlarla yeniden yayınla (Netlify build hook)
      POST /api/yonetim/test-bildirim  bildirim numaralarına deneme mesajı
      POST /api/yonetim/haftalik       haftalık raporu şimdi gönder
+     POST /api/yonetim/yedek-al | yedekler | yedek-indir   veritabanı yedeği (gizli depo)
      POST /api/yonetim/kargo          kargoya ver: { orderId, carrier, code } → durum kargoda + takip bağlantısı
      POST /api/yonetim/iade           kart siparişini iyzico ile iptal / iade et ({ orderId, amount? })
    Ortam: NETLIFY_BUILD_HOOK (Netlify → Site configuration → Build hooks; GİZLİ). */
@@ -10,7 +11,8 @@ import { clientIp, json } from './catalog-live.js'
 import { db, dbEnabled, requireAdmin } from './db.js'
 import { refundOrder } from './refund.js'
 import { markShipped } from './shipping.js'
-import { TEMPLATES, broadcast, whatsappEnabled } from './whatsapp.js'
+import { backupNow, listBackups, signedBackupUrl } from './maintenance.js'
+import { TEMPLATES, broadcast, notifyEnabled } from './whatsapp.js'
 
 const env = (k) => (typeof process !== 'undefined' ? process.env[k] : undefined)
 
@@ -27,7 +29,7 @@ export function lastWeekRange(now = new Date()) {
 /* Şablon "haftalik_rapor" — 7 değişken, sırası KURULUM-YONETIM.md ile aynı. */
 export async function sendWeeklyReport() {
   if (!dbEnabled()) return { skipped: 'veritabanı ayarı yok' }
-  if (!whatsappEnabled()) return { skipped: 'whatsapp ayarı yok' }
+  if (!notifyEnabled()) return { skipped: 'bildirim ayarı yok' }
   const enabled = await db.setting('weekly_report')
   if (enabled === false) return { skipped: 'panelden kapalı' }
   const range = lastWeekRange()
@@ -78,6 +80,13 @@ export async function adminAction(request, ctx = {}) {
       return json(200, r)
     }
     if (action === 'haftalik') return json(200, await sendWeeklyReport())
+    if (action === 'yedek-al') return json(200, await backupNow())
+    if (action === 'yedekler') return json(200, { files: await listBackups() })
+    if (action === 'yedek-indir') {
+      let body = {}
+      try { body = await request.json() } catch { return json(400, { error: 'json' }) }
+      return json(200, { url: await signedBackupUrl(body.name) })
+    }
     if (action === 'kargo') {
       let body = {}
       try { body = await request.json() } catch { return json(400, { error: 'json' }) }

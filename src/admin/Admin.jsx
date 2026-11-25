@@ -298,6 +298,7 @@ function Orders() {
           </select>
         </label>
         <button type="button" className="adm-btn" onClick={reload}>Yenile</button>
+        <button type="button" className="adm-btn" onClick={() => downloadCsv(list, ym)} disabled={!list.length}>CSV indir (muhasebe)</button>
       </header>
       {waiting > 0 && <Notice>{waiting} WhatsApp siparişi onay bekliyor. Müşteri mesajı ve ödemesi gelince durumu “Onaylandı” yapın; gelmezse “İptal”.</Notice>}
       {error && <Notice kind="error">{error}</Notice>}
@@ -622,6 +623,64 @@ function MfaChallenge({ onDone }) {
   )
 }
 
+/* Muhasebe için ayın siparişleri (Excel'de açılır: UTF-8 BOM + noktalı virgül). */
+function downloadCsv(list, ym) {
+  const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const num = (v) => String(Number(v) || 0).replace('.', ',')
+  const head = ['Tarih', 'Sipariş no', 'Durum', 'Kanal', 'Ödeme', 'Müşteri', 'İl', 'İlçe', 'Ürünler', 'Ara toplam', 'Kargo', 'Toplam', 'iyzico kesintisi', 'İade edilen', 'Ek gider', 'Kargo takip']
+  const rows = list.map((o) => [
+    dt.format(new Date(o.created_at)), o.id, STATUS_LABEL[o.status] ?? o.status, o.channel, PAY[o.payment_method] ?? o.payment_method,
+    o.customer?.name ?? '', o.customer?.city ?? '', o.customer?.district ?? '',
+    (o.items ?? []).map((i) => `${i.qty}x ${i.name} ${i.label}`).join(', '),
+    num(o.subtotal), num(o.shipping), num(o.total), num(o.commission), num(o.refunded), num(o.extra_cost), o.tracking_code ?? '',
+  ])
+  const csv = '\ufeff' + [head, ...rows].map((r) => r.map(cell).join(';')).join('\r\n')
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  a.download = `er-pervari-siparisler-${ym}.csv`
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+}
+
+function Backups() {
+  const [{ loading, data, error }, reload] = useAsync(() => serverAction('yedekler'), [])
+  const [msg, setMsg] = useState('')
+  const take = async () => {
+    setMsg('Yedek alınıyor…')
+    try {
+      const r = await serverAction('yedek-al')
+      const TR = { products: 'ürün', variant_costs: 'maliyet', inventory: 'stok', orders: 'sipariş', settings: 'ayar', admins: 'yönetici' }
+      setMsg(`Yedek alındı: ${Object.entries(r.counts ?? {}).map(([k, v]) => `${v} ${TR[k] ?? k}`).join(', ')}`)
+      reload()
+    } catch (e) { setMsg(`Yedek alınamadı: ${e.message}`) }
+  }
+  const download = async (name) => {
+    try {
+      const { url } = await serverAction('yedek-indir', { name })
+      window.open(url, '_blank', 'noopener')
+    } catch (e) { setMsg(`İndirilemedi: ${e.message}`) }
+  }
+  return (
+    <div className="adm-settings">
+      <h3>Yedekler</h3>
+      <p className="adm-muted">Her pazar gece veritabanının tamamı gizli bir depoya yedeklenir; son 8 yedek tutulur. Yedek dosyası müşteri bilgisi içerir — indirdiğiniz dosyayı güvenli yerde saklayın, paylaşmayın.</p>
+      {error && <Notice kind="warn">Yedek listesi okunamadı: {error}</Notice>}
+      {loading ? <p className="adm-muted">Yükleniyor…</p> : (
+        <ul className="adm-numbers">
+          {(data?.files ?? []).map((f) => (
+            <li key={f.name}><span dir="ltr">{f.name.replace('.json', '')}</span><button type="button" className="adm-link" onClick={() => download(f.name)}>İndir</button></li>
+          ))}
+          {(data?.files ?? []).length === 0 && <li className="adm-muted">Henüz yedek yok.</li>}
+        </ul>
+      )}
+      <div className="adm-actions">
+        <button type="button" className="adm-btn" onClick={take}>Şimdi yedek al</button>
+        {msg && <span className="adm-muted" role="status">{msg}</span>}
+      </div>
+    </div>
+  )
+}
+
 function MfaSetup() {
   const [{ loading, data, error }, reload] = useAsync(() => auth.mfa.factors(), [])
   const [enroll, setEnroll] = useState(null)
@@ -755,6 +814,7 @@ function Settings() {
         </div>
       )}
       <MfaSetup />
+      <Backups />
     </section>
   )
 }

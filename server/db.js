@@ -39,6 +39,11 @@ export const db = {
   /* Belirli bir yaştaki "ödeme bekliyor" kart siparişleri (eşleştirme görevi için). */
   pendingPayments: (olderThanIso, newerThanIso) =>
     rest(`orders?select=id,created_at,provider_token&status=eq.odeme_bekliyor&channel=eq.kart&created_at=lt.${encodeURIComponent(olderThanIso)}&created_at=gt.${encodeURIComponent(newerThanIso)}&order=created_at.asc&limit=50`),
+  /* KVKK saklama: tamamlanmamış ve henüz anonimleştirilmemiş eski siparişler. */
+  staleUnfinished: (beforeIso) =>
+    rest(`orders?select=id,customer&status=in.(beklemede,basarisiz,iptal,odeme_bekliyor)&created_at=lt.${encodeURIComponent(beforeIso)}&customer->>anonymized=is.null&limit=200`),
+  /* Yedek için tablonun tamamı (küçük dükkân ölçeği; 10 bin satıra kadar). */
+  dump: (table) => rest(`${table}?select=*&limit=10000`),
   recentOrders: (sinceIso, channel) => rest(`orders?select=id&created_at=gte.${encodeURIComponent(sinceIso)}${channel ? `&channel=eq.${channel}` : ''}`),
   getOrder: (id) => rest(`orders?id=eq.${encodeURIComponent(id)}&select=*`).then((r) => r?.[0] ?? null),
   recentOrdersFromIp: (ip, sinceIso) => rest(`orders?select=id&ip=eq.${encodeURIComponent(ip)}&created_at=gte.${encodeURIComponent(sinceIso)}`),

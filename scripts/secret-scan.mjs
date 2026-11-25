@@ -35,6 +35,7 @@ const PATTERNS = [
   [/\bfc-[A-Za-z0-9]{24,}/, 'Firecrawl anahtarı'],
   [/\bpplx-[A-Za-z0-9]{24,}/, 'Perplexity anahtarı'],
   [/\bxkeysib-[A-Za-z0-9-]{40,}/, 'Brevo API anahtarı'],
+  [/\b\d{8,10}:AA[A-Za-z0-9_-]{30,}/, 'Telegram bot anahtarı'],
   [/\bxsmtpsib-[A-Za-z0-9-]{40,}/, 'Brevo SMTP anahtarı'],
   [/hooks\.netlify\.com\/build_hooks\/[a-f0-9]{16,}/, 'Netlify build hook adresi'],
 ]

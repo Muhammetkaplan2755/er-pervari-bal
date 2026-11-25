@@ -259,3 +259,6 @@ create trigger inventory_status after insert or update or delete on public.inven
   for each row execute function public.inventory_status_trg();
 
 alter table public.orders add column if not exists carrier text;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('yedekler', 'yedekler', false, 52428800, array['application/json'])
+on conflict (id) do update set public = false;

@@ -191,6 +191,7 @@ export const legalDocs = [
           'Supabase (sipariş kayıtları ve yönetici paneli) — [TEYİT: proje bölgesi, örn. AB / Frankfurt].',
           'Sipariş bildirimi (WhatsApp): mesaja yalnızca sipariş numarası, ürünler, tutar ve il/ilçe yazılır; adınız, telefonunuz ve adresiniz gönderilmez.',
           'iyzico (kartla ödeme) — Türkiye.',
+          'Telegram (dükkân sahibine sipariş bildirimi; yalnızca sipariş no, ürünler, tutar ve il/ilçe — adınız, telefonunuz ve adresiniz gönderilmez).',
           'Brevo (sipariş onay e-postası; ad, e-posta, sipariş içeriği ve teslimat adresi) — Avrupa Birliği.',
         ],
       },
@@ -198,7 +199,7 @@ export const legalDocs = [
         h: 'Saklama süresi',
         p: [
           'Sipariş ve fatura kayıtları ilgili mevzuatın öngördüğü süre boyunca (Vergi Usul Kanunu ve Türk Ticaret Kanunu gereği genel olarak 10 yıl) saklanır, süre bitince silinir veya anonim hale getirilir.',
-          'Tamamlanmayan siparişlerin (ödemesi yapılmayan ya da WhatsApp mesajı gönderilmeyen) kayıtları [TEYİT: örn. 30 gün] sonra silinir.',
+          'Tamamlanmayan siparişlerin (ödemesi yapılmayan, onaylanmayan ya da iptal edilen) kişisel verileri 30 gün sonra kendiliğinden silinir. [TEYİT: süre avukatla netleştirilmeli]',
         ],
       },
       {

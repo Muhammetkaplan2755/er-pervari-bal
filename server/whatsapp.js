@@ -91,9 +91,9 @@ async function sendCallmebot({ phone, key }, text) {
 
 /* Herkese gönderir; birinin hatası diğerlerini durdurmaz. Hiç hata fırlatmaz.
    name/params: Meta şablonu · text: CallMeBot için düz metin. */
-export async function broadcast(name, params, text) {
+async function broadcastWhatsapp(name, params, text) {
   const mode = whatsappMode()
-  if (mode === 'yok') return { sent: 0, skipped: 'whatsapp ayarı yok' }
+  if (mode === 'yok') return { sent: 0, total: 0, skipped: 'whatsapp ayarı yok' }
   let targets
   let send
   if (mode === 'meta') {
@@ -112,6 +112,44 @@ export async function broadcast(name, params, text) {
   }
   results.forEach((r, i) => { if (r.status === 'rejected') console.error('whatsapp →', mode, targets[i]?.phone ?? targets[i], r.reason?.message) })
   return { sent: results.filter((r) => r.status === 'fulfilled').length, total: targets.length, mode }
+}
+
+/* ---------- Telegram (sahibe ücretsiz, sınırsız bildirim) ----------
+   TELEGRAM_BOT_TOKEN  @BotFather'dan alınan bot anahtarı (GİZLİ)
+   TELEGRAM_CHAT_IDS   bildirim alacak sohbet kimlikleri, virgülle (npm run kontrol bulur)
+   Mesaj WhatsApp'taki kısa metinle aynıdır: müşteri adı/telefonu/adresi yok. */
+const telegramChats = () => (env('TELEGRAM_CHAT_IDS') || '').split(',').map((x) => x.trim()).filter((x) => /^-?\d{4,20}$/.test(x))
+export const telegramEnabled = () => Boolean(env('TELEGRAM_BOT_TOKEN')) && telegramChats().length > 0
+
+async function sendTelegram(text) {
+  if (!telegramEnabled()) return { sent: 0, total: 0 }
+  const chats = telegramChats()
+  const results = await Promise.allSettled(chats.map(async (chat_id) => {
+    const res = await fetch(`https://api.telegram.org/bot${env('TELEGRAM_BOT_TOKEN')}/sendMessage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chat_id, text: String(text).slice(0, 4000), disable_web_page_preview: true }),
+    })
+    if (!res.ok) throw new Error(`telegram ${res.status}`)
+  }))
+  results.forEach((r) => { if (r.status === 'rejected') console.error('telegram →', r.reason?.message) })
+  return { sent: results.filter((r) => r.status === 'fulfilled').length, total: chats.length }
+}
+
+export const notifyEnabled = () => whatsappEnabled() || telegramEnabled()
+
+/* Tüm bildirim kanallarına gönderir (WhatsApp + Telegram); hiç hata fırlatmaz. */
+export async function broadcast(name, params, text) {
+  if (!notifyEnabled()) return { sent: 0, skipped: 'bildirim ayarı yok' }
+  const [wa, tg] = await Promise.all([broadcastWhatsapp(name, params, text), sendTelegram(text)])
+  return { sent: wa.sent + tg.sent, total: wa.total + tg.total, mode: wa.mode, telegram: tg.sent }
+}
+
+/* Kritik durum uyarısı (ödeme alındı ama kaydedilemedi, yedek alınamadı…): yalnızca Telegram,
+   çünkü WhatsApp şablon gerektirir. Telegram yoksa yalnızca sunucu kaydına düşer. */
+export async function alertOwner(text) {
+  console.error('UYARI:', text)
+  return sendTelegram(text)
 }
 
 const tl = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 2 })

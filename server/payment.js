@@ -18,7 +18,7 @@ import { trText } from '../src/data/catalog.js'
 import { cleanBuyer, clientIp, json, orderItems, priceOrder, sameSiteJson } from './catalog-live.js'
 import { db, dbEnabled } from './db.js'
 import { sendOrderEmail } from './mailer.js'
-import { notifyOrder } from './whatsapp.js'
+import { alertOwner, notifyOrder } from './whatsapp.js'
 
 const SANDBOX = 'https://sandbox-api.iyzipay.com'
 const INIT_PATH = '/payment/iyzipos/checkoutform/initialize/auth/ecom'
@@ -230,7 +230,7 @@ export async function settleByToken(token, { abandon = false, expectedOrder = ''
       const amountOk = before && Math.abs(num(r.paidPrice) - Number(before.total)) < 0.01 && (r.currency ?? 'TRY') === 'TRY'
       const fraudOk = r.fraudStatus === undefined || Number(r.fraudStatus) === 1
       const sigOk = signatureOk(r, token)
-      if (!sigOk) console.error('iyzico imza uyuşmadı', orderNo)
+      if (!sigOk) await alertOwner(`⚠️ ${orderNo}: iyzico imzası uyuşmadı. Kargolamadan önce iyzico panelinden kontrol edin.`)
       if (ok && before?.status === 'odeme_bekliyor' && (!amountOk || !fraudOk || !sigOk || r.conversationId !== orderNo)) {
         await db.updateOrderIf(orderNo, 'odeme_bekliyor', { admin_note: `KONTROL EDİN: iyzico tutar ${r.paidPrice} ${r.currency ?? ''}, fraudStatus ${r.fraudStatus}, imza ${sigOk ? 'tamam' : 'UYUŞMADI'}. Kargolamadan önce iyzico panelinden doğrulayın.` })
       } else if (ok && before?.status === 'odeme_bekliyor') {
@@ -254,7 +254,7 @@ export async function settleByToken(token, { abandon = false, expectedOrder = ''
     } catch (e) {
       // Ödeme alındı ama kayıt güncellenemedi: müşteriye başarı göster, panelde "ödeme bekliyor" kalır;
       // zamanlanmış eşleştirme bir sonraki turda yeniden dener.
-      console.error('sipariş güncelleme', orderNo, e.message)
+      await alertOwner(`⚠️ ${orderNo}: ödeme sonucu kaydedilemedi (${String(e.message).slice(0, 100)}). Eşleştirme yeniden deneyecek; iyzico panelinden kontrol edin.`)
     }
   }
   return { ok, orderNo, reached: true, paymentStatus: r.paymentStatus }

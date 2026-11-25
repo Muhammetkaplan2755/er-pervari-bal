@@ -9,7 +9,7 @@ function paymentApi(mode) {
     name: 'payment-api',
     configureServer(server) {
       Object.assign(process.env, loadEnv(mode, process.cwd(), 'IYZICO_'), loadEnv(mode, process.cwd(), 'PUBLIC_ORIGIN'))
-      Object.assign(process.env, loadEnv(mode, process.cwd(), ['SUPABASE_', 'VITE_SUPABASE_', 'WHATSAPP_', 'NETLIFY_BUILD_HOOK', 'CALLMEBOT', 'BREVO_', 'MAIL_']))
+      Object.assign(process.env, loadEnv(mode, process.cwd(), ['SUPABASE_', 'VITE_SUPABASE_', 'WHATSAPP_', 'NETLIFY_BUILD_HOOK', 'CALLMEBOT', 'BREVO_', 'MAIL_', 'TELEGRAM_', 'RETENTION_']))
       const routes = {
         '/api/odeme-baslat': ['/server/payment.js', 'startPayment'],
         '/api/odeme-sonuc': ['/server/payment.js', 'finishPayment'],

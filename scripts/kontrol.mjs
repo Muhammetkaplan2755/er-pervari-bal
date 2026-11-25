@@ -135,6 +135,25 @@ if (!E.BREVO_API_KEY || !E.MAIL_FROM) {
   }
 }
 
+/* ---------- Telegram ---------- */
+console.log('\nTelegram (sahibe bildirim)')
+if (!E.TELEGRAM_BOT_TOKEN) {
+  skip('TELEGRAM_BOT_TOKEN yok — Telegram bildirimi kapalı')
+} else {
+  try {
+    const me = await get(`https://api.telegram.org/bot${E.TELEGRAM_BOT_TOKEN}/getMe`)
+    check(me.body?.ok, `bot: @${me.body?.result?.username}`, 'Telegram bot anahtarı geçersiz')
+    if (!E.TELEGRAM_CHAT_IDS) {
+      const up = await get(`https://api.telegram.org/bot${E.TELEGRAM_BOT_TOKEN}/getUpdates`)
+      const chats = [...new Map((up.body?.result ?? []).map((u) => u.message?.chat).filter(Boolean).map((c) => [c.id, c])).values()]
+      if (chats.length) bad(`TELEGRAM_CHAT_IDS boş — bota yazan sohbetler: ${chats.map((c) => `${c.id} (${c.first_name ?? c.title ?? ''})`).join(', ')} → bunu .env dosyasına yazın`)
+      else bad('TELEGRAM_CHAT_IDS boş — önce Telegram\'da bota bir mesaj yazın, sonra npm run kontrol\'ü tekrar çalıştırın')
+    } else ok(`bildirim gidecek sohbet sayısı: ${E.TELEGRAM_CHAT_IDS.split(',').length}`)
+  } catch (e) {
+    bad(`Telegram'a bağlanılamadı: ${e.message}`)
+  }
+}
+
 /* ---------- yayın ---------- */
 console.log('\nYayın')
 check(E.NETLIFY_BUILD_HOOK, 'NETLIFY_BUILD_HOOK tanımlı (panel "Siteye yayınla")', 'NETLIFY_BUILD_HOOK yok — "Siteye yayınla" düğmesi çalışmaz (yerelde normal)', true)
