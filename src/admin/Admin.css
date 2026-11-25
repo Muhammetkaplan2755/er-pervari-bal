@@ -182,3 +182,6 @@ section > .adm-editor { margin-bottom: 16px; padding: 16px; border: 1px solid va
 .adm-refund label { width: 160px; }
 .adm-btn--danger { border-color: var(--a-err); color: var(--a-err); background: #fff; }
 .adm-btn--danger:hover { background: var(--a-err); color: #fff; }
+
+.adm-ship { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; margin: 0 0 12px; padding: 12px; border-radius: 12px; background: #eef3f0; }
+.adm-ship label { min-width: 160px; }

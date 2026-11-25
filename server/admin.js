@@ -2,12 +2,14 @@
      POST /api/yonetim/yayinla        siteyi yeni fiyatlarla yeniden yayınla (Netlify build hook)
      POST /api/yonetim/test-bildirim  bildirim numaralarına deneme mesajı
      POST /api/yonetim/haftalik       haftalık raporu şimdi gönder
+     POST /api/yonetim/kargo          kargoya ver: { orderId, carrier, code } → durum kargoda + takip bağlantısı
      POST /api/yonetim/iade           kart siparişini iyzico ile iptal / iade et ({ orderId, amount? })
    Ortam: NETLIFY_BUILD_HOOK (Netlify → Site configuration → Build hooks; GİZLİ). */
 import { buildReport, money } from '../src/admin/report.js'
 import { clientIp, json } from './catalog-live.js'
 import { db, dbEnabled, requireAdmin } from './db.js'
 import { refundOrder } from './refund.js'
+import { markShipped } from './shipping.js'
 import { TEMPLATES, broadcast, whatsappEnabled } from './whatsapp.js'
 
 const env = (k) => (typeof process !== 'undefined' ? process.env[k] : undefined)
@@ -76,6 +78,12 @@ export async function adminAction(request, ctx = {}) {
       return json(200, r)
     }
     if (action === 'haftalik') return json(200, await sendWeeklyReport())
+    if (action === 'kargo') {
+      let body = {}
+      try { body = await request.json() } catch { return json(400, { error: 'json' }) }
+      const r = await markShipped(body.orderId, body.carrier, body.code)
+      return json(r.ok ? 200 : 400, r.ok ? r : { error: r.error })
+    }
     if (action === 'iade') {
       let body = {}
       try { body = await request.json() } catch { return json(400, { error: 'json' }) }

@@ -63,7 +63,7 @@ ${docHtml('mesafeli-satis-sozlesmesi')}
 }
 
 /* Hiç hata fırlatmaz: e-posta gitmese de sipariş akışı sürer; sonuç kayda geçer. */
-export async function sendOrderEmail(order) {
+async function send(order, subject, html, tag) {
   const to = order?.customer?.email
   if (!mailEnabled()) return { sent: false, skipped: 'e-posta ayarı yok' }
   if (!to) return { sent: false, skipped: 'müşteri e-postası yok' }
@@ -75,15 +75,33 @@ export async function sendOrderEmail(order) {
         sender: { name: env('MAIL_FROM_NAME') || SELLER.brand, email: env('MAIL_FROM') },
         to: [{ email: to, name: order.customer.name || undefined }],
         ...(env('MAIL_REPLY_TO') ? { replyTo: { email: env('MAIL_REPLY_TO') } } : {}),
-        subject: `Siparişiniz alındı — ${order.id}`,
-        htmlContent: orderEmailHtml(order),
-        tags: ['siparis-onay'],
+        subject,
+        htmlContent: html,
+        tags: [tag],
       }),
     })
     if (!res.ok) throw new Error(`brevo ${res.status}: ${(await res.text()).slice(0, 200)}`)
     return { sent: true }
   } catch (e) {
-    console.error('onay e-postası gönderilemedi', order.id, e.message)
+    console.error(`${tag} e-postası gönderilemedi`, order.id, e.message)
     return { sent: false, error: e.message }
   }
 }
+
+export const sendOrderEmail = (order) => send(order, `Siparişiniz alındı — ${order.id}`, orderEmailHtml(order), 'siparis-onay')
+
+export function shippingEmailHtml(order, { url, carrier, code }) {
+  return `<!doctype html><html lang="tr"><body style="margin:0;background:#f4efe6;font-family:Arial,Helvetica,sans-serif;color:#1d1306">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fffdf9;border-radius:12px;padding:28px"><tr><td>
+<p style="font-size:13px;color:#6e5c46;margin:0">${esc(SELLER.brand)}</p>
+<h1 style="font-size:22px;margin:6px 0 8px">Siparişiniz kargoya verildi</h1>
+<p style="margin:0 0 16px;color:#4f3f2c">Sipariş no: <strong>${esc(order.id)}</strong></p>
+<p style="font-size:15px;margin:0 0 6px">${esc(carrier)} · Takip no: <strong>${esc(code)}</strong></p>
+<p style="margin:16px 0"><a href="${esc(url)}" style="display:inline-block;background:#1d1306;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px">Kargonu takip et</a></p>
+<p style="font-size:12px;color:#6e5c46;margin:24px 0 0">${esc(SELLER.title)} · ${esc(SELLER.address)} · ${esc(SELLER.phone)}</p>
+</td></tr></table></td></tr></table></body></html>`
+}
+
+export const sendShippingEmail = (order, info) =>
+  send(order, `Siparişiniz kargoda — ${order.id}`, shippingEmailHtml(order, info), 'kargo')

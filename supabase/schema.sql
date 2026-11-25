@@ -258,3 +258,4 @@ drop trigger if exists inventory_status on public.inventory;
 create trigger inventory_status after insert or update or delete on public.inventory
   for each row execute function public.inventory_status_trg();
 
+alter table public.orders add column if not exists carrier text;

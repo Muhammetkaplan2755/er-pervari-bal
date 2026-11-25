@@ -147,6 +147,11 @@ return {
   serverAction: async (action, body) => {
     await wait(400)
     if (action === 'yayinla') return { ok: true }
+    if (action === 'kargo') {
+      const o = db.orders.find((x) => x.id === body.orderId)
+      Object.assign(o, { status: 'kargolandi', carrier: body.carrier, tracking_code: String(body.code).replace(/\s+/g, '') })
+      return { ok: true, order: clone(o), mail: { sent: false } }
+    }
     if (action === 'iade') {
       const o = db.orders.find((x) => x.id === body.orderId)
       const amount = body.amount ?? Number(o.total) - (o.refunded || 0)

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CATEGORIES } from '../data/catalog.js'
+import { CARRIERS, CATEGORIES } from '../data/catalog.js'
 import { auth, configured, costs as costsApi, images as imagesApi, inventory as inventoryApi, isDemo, orders as ordersApi, products as productsApi, serverAction, settings as settingsApi } from './api.js'
 import { STATUS_LABEL, buildReport, monthRange, money } from './report.js'
 import './Admin.css'
@@ -121,6 +121,48 @@ function Login({ recovery, onDone }) {
   )
 }
 
+/* ---------- kargoya verme ---------- */
+const trackUrl = (carrierId, code) => {
+  const c = CARRIERS.find((x) => x.id === carrierId)
+  return c && code ? c.url.replace('{kod}', encodeURIComponent(code)) : ''
+}
+function ShipBox({ order, onDone }) {
+  const [carrier, setCarrier] = useState(order.carrier || CARRIERS[0].id)
+  const [code, setCode] = useState(order.tracking_code ?? '')
+  const [state, setState] = useState('')
+  const shipped = order.status === 'kargolandi' && order.tracking_code
+  const run = async () => {
+    setState('Kaydediliyor…')
+    try {
+      const r = await serverAction('kargo', { orderId: order.id, carrier, code })
+      setState(r.mail?.sent ? 'Kargoda; müşteriye kargo e-postası gitti.' : 'Kargoda olarak işaretlendi.')
+      if (r.order) onDone(r.order)
+    } catch (e) {
+      setState(`Kaydedilemedi: ${e.message}`)
+    }
+  }
+  const phone = waPhone(order.customer?.phone)
+  const url = trackUrl(order.carrier, order.tracking_code)
+  const carrierName = CARRIERS.find((x) => x.id === order.carrier)?.name ?? ''
+  const msg = `Merhaba ${order.customer?.name ?? ''}, Er Pervari Bal siparişiniz (${order.id}) kargoya verildi.\n${carrierName} takip no: ${order.tracking_code}\nTakip: ${url}`
+  return (
+    <div className="adm-ship">
+      <label>Kargo firması
+        <select value={carrier} onChange={(e) => setCarrier(e.target.value)}>
+          {CARRIERS.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </label>
+      <label>Takip numarası<input value={code} onChange={(e) => setCode(e.target.value)} inputMode="text" autoComplete="off" /></label>
+      <button type="button" className="adm-btn adm-btn--primary" onClick={run}>{shipped ? 'Kargo bilgisini güncelle' : 'Kargoya verildi'}</button>
+      {shipped && url && <a className="adm-link" href={url} target="_blank" rel="noopener noreferrer">Takibi aç</a>}
+      {shipped && phone && (
+        <a className="adm-btn" href={`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer">Müşteriye WhatsApp'tan bildir</a>
+      )}
+      {state && <span className="adm-muted" role="status">{state}</span>}
+    </div>
+  )
+}
+
 /* ---------- kart iadesi ---------- */
 function RefundBox({ order, onDone }) {
   const left = Math.round((Number(order.total) - (Number(order.refunded) || 0)) * 100) / 100
@@ -206,6 +248,7 @@ function OrderRow({ order, onSaved }) {
                 <span className="adm-muted">Sipariş, tutar, cayma hakkı ve sözleşme bağlantısı yazılı hazır mesaj açılır; göndermeden önce kontrol edin.</span>
               </p>
             )}
+            {['odendi', 'onaylandi', 'kargolandi'].includes(order.status) && <ShipBox order={order} onDone={onSaved} />}
             {order.channel === 'kart' && ['odendi', 'kargolandi', 'teslim_edildi'].includes(order.status) && (
               <RefundBox order={order} onDone={onSaved} />
             )}
