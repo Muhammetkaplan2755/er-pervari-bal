@@ -14,6 +14,7 @@ function paymentApi(mode) {
         '/api/odeme-baslat': ['/server/payment.js', 'startPayment'],
         '/api/odeme-sonuc': ['/server/payment.js', 'finishPayment'],
         '/api/siparis': ['/server/orders.js', 'recordWhatsAppOrder'],
+        '/api/iyzico-bildirim': ['/server/reconcile.js', 'handleIyzicoWebhook'],
       }
       server.middlewares.use(async (req, res, next) => {
         const path = req.url.split('?')[0]

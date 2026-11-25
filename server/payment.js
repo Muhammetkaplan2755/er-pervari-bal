@@ -172,6 +172,11 @@ export async function startPayment(request, ctx = {}) {
       if (dbEnabled()) await db.updateOrder(orderNo, { status: 'basarisiz', admin_note: `iyzico: ${r.errorMessage ?? r.errorCode}` }).catch(() => {})
       return json(502, { error: 'provider' })
     }
+    // Token saklanır: müşteri iyzico sayfasını kapatırsa (dönüş hiç gelmezse) zamanlanmış
+    // eşleştirme görevi ödemeyi bu token ile iyzico'ya sorar (server/reconcile.js).
+    if (dbEnabled() && r.token) {
+      await db.updateOrder(orderNo, { provider_token: String(r.token).slice(0, 200) }).catch((e) => console.error('token kaydı', e.message))
+    }
     return json(200, { url: r.paymentPageUrl, orderNo })
   } catch (e) {
     console.error('iyzico initialize', e.message)
@@ -190,16 +195,29 @@ export async function finishPayment(request) {
   } catch { /* falls through to the error page */ }
   if (!token) return back('durum=hata')
 
+  const { ok, orderNo, reached } = await settleByToken(token, { abandon: true })
+  if (!reached) return back('durum=hata')
+  return ok ? back(`durum=basarili&no=${encodeURIComponent(orderNo)}`) : back('durum=hata')
+}
+
+/* Ödeme sonucunu token ile iyzico'ya sorar ve siparişi günceller. Üç yerden çağrılır:
+   müşterinin tarayıcı dönüşü (finishPayment), iyzico bildirimi (webhook) ve zamanlanmış
+   eşleştirme (reconcile). Kaynak ne olursa olsun karar iyzico'nun sunucudan verdiği yanıttır.
+   abandon: true → ödeme başarısızsa sipariş "başarısız" yapılır (müşteri döndü ya da süre doldu).
+   abandon: false → ödeme hâlâ sürüyor olabilir; yalnızca kesin başarısızlıkta işaretlenir. */
+export async function settleByToken(token, { abandon = false, expectedOrder = '' } = {}) {
   let r
   try {
     r = await iyzico(DETAIL_PATH, { locale: 'tr', token })
   } catch (e) {
     console.error('iyzico detail', e.message)
-    return back('durum=hata')
+    return { ok: false, orderNo: expectedOrder, reached: false }
   }
   const ok = r.status === 'success' && r.paymentStatus === 'SUCCESS'
-  const orderNo = r.basketId ?? ''
+  const orderNo = r.basketId || expectedOrder || ''
   if (!ok) console.error('iyzico detail', r.paymentStatus, r.errorCode, r.errorMessage)
+  // Kesin başarısızlık: iyzico ödemenin başarısız olduğunu söylüyor (devam eden 3D aşamaları değil).
+  const definiteFail = !ok && (abandon || r.paymentStatus === 'FAILURE')
 
   if (dbEnabled() && orderNo) {
     try {
@@ -224,13 +242,14 @@ export async function finishPayment(request) {
           provider_payment_id: String(r.paymentId ?? ''),
         })
         if (saved) await notifyOrder(saved)
-      } else if (!ok && before?.status === 'odeme_bekliyor') {
+      } else if (definiteFail && before?.status === 'odeme_bekliyor') {
         await db.updateOrderIf(orderNo, 'odeme_bekliyor', { status: 'basarisiz', admin_note: `iyzico: ${r.errorMessage ?? r.paymentStatus ?? ''}` })
       }
     } catch (e) {
-      // Ödeme alındı ama kayıt güncellenemedi: müşteriye başarı göster, panelde "ödeme bekliyor" kalır.
+      // Ödeme alındı ama kayıt güncellenemedi: müşteriye başarı göster, panelde "ödeme bekliyor" kalır;
+      // zamanlanmış eşleştirme bir sonraki turda yeniden dener.
       console.error('sipariş güncelleme', orderNo, e.message)
     }
   }
-  return ok ? back(`durum=basarili&no=${encodeURIComponent(orderNo)}`) : back('durum=hata')
+  return { ok, orderNo, reached: true, paymentStatus: r.paymentStatus }
 }

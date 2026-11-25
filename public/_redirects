@@ -3,6 +3,7 @@
 # Kartla ödeme fonksiyonları (netlify/functions).
 /api/odeme-baslat  /.netlify/functions/odeme-baslat  200
 /api/odeme-sonuc   /.netlify/functions/odeme-sonuc   200
+/api/iyzico-bildirim  /.netlify/functions/iyzico-bildirim  200
 /api/siparis        /.netlify/functions/siparis        200
 /api/yonetim/:action  /.netlify/functions/yonetim?action=:action  200
 # Yönetici paneli tek sayfa; alt adresler aynı HTML'i açar.

@@ -153,3 +153,9 @@ drop policy if exists urunler_admin_select on storage.objects;
 create policy urunler_admin_select on storage.objects for select to authenticated
   using (bucket_id = 'urunler' and public.is_admin());
 
+-- iyzico ödeme oturumu anahtarı: müşteri sayfayı kapatırsa ödemeyi bununla sorarız.
+-- Tek başına para çekmeye yaramaz; yalnızca sonucu sorgulamak içindir. Ziyaretçiye kapalı (RLS).
+alter table public.orders add column if not exists provider_token text;
+
+-- Eşleştirme görevi "ödeme bekliyor" siparişleri hızlı bulsun.
+create index if not exists orders_pending_idx on public.orders (status, created_at) where status = 'odeme_bekliyor';

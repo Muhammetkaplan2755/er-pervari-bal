@@ -36,6 +36,9 @@ export const db = {
      istekten yalnızca biri kazanır, çift bildirim olmaz). Değişmediyse null. */
   updateOrderIf: (id, fromStatus, patch) =>
     rest(`orders?id=eq.${encodeURIComponent(id)}&status=eq.${encodeURIComponent(fromStatus)}`, { method: 'PATCH', body: patch, prefer: 'return=representation' }).then((r) => r?.[0] ?? null),
+  /* Belirli bir yaştaki "ödeme bekliyor" kart siparişleri (eşleştirme görevi için). */
+  pendingPayments: (olderThanIso, newerThanIso) =>
+    rest(`orders?select=id,created_at,provider_token&status=eq.odeme_bekliyor&channel=eq.kart&created_at=lt.${encodeURIComponent(olderThanIso)}&created_at=gt.${encodeURIComponent(newerThanIso)}&order=created_at.asc&limit=50`),
   recentOrders: (sinceIso, channel) => rest(`orders?select=id&created_at=gte.${encodeURIComponent(sinceIso)}${channel ? `&channel=eq.${channel}` : ''}`),
   getOrder: (id) => rest(`orders?id=eq.${encodeURIComponent(id)}&select=*`).then((r) => r?.[0] ?? null),
   recentOrdersFromIp: (ip, sinceIso) => rest(`orders?select=id&ip=eq.${encodeURIComponent(ip)}&created_at=gte.${encodeURIComponent(sinceIso)}`),

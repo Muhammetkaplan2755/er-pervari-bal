@@ -168,3 +168,15 @@ Caveman reviewer iki tur çalıştı; bulgular düzeltildi.
 - Tur 1–2 (taste-skill): yön "split-stage / 32A kapısı"; Instrument Serif dik başlık + Inter gövde; bakır patinası yeşili #163e38 + bal amberi; bento/eyebrow/hairline/gradyan/sayaç kaldırıldı; inspect 0 FAIL / 3 WARN. Rapor: `codex-tasarim-raporu.md`, görüntüler `.taste-skill/`.
 - Task B (sinematik): filmde amber geçiş + 32A kapı yakınlaşması, kelime kelime başlık açılışı (AR kelime bütün), View Transitions ile sayfa geçişi (router.js navigate), ana paket +1,7 kB.
 - Task A (bal dökümü): `HoneyPour.jsx` + `honeyPourScene.js` (tembel three.js, 96 fps masaüstü, telefonda/reduced-motion/Save-Data/WebGL yoksa SVG durağan). Task A2 (renk/kavanoz/kalın akış) YARIDA: yalnızca Karakovan'da yan yana düzen (`.kk__pour`, "Petekten kavanoza" + sipariş düğmesi) yapıldı; Codex kullanım sınırı (20:44'e kadar). Brief: scratchpad `codex-honeypour-2-en.md`. Yedekler: scratchpad `backup-pre-codex-tasarim`, `backup-tur2`, `backup-tur3`.
+
+## Altyapı (Aşama 1) — 2026-11-24
+- Git + özel GitHub deposu (dal `main`). Gizli anahtar kalkanı: `.gitignore` + `scripts/secret-scan.mjs` (`.githooks` pre-commit/pre-push; yeni klonda `git config core.hooksPath .githooks`) + CI'da gitleaks.
+- Vitest (`npm test`), `npm run check` (lint + test + tarama), `.github/workflows/ci.yml`, Dependabot.
+- Eksik kalan: uçtan uca tarayıcı testleri (Playwright) ve Supabase CLI ile migration yönetimi (şimdilik `supabase/migrations/*.sql` elle çalıştırılıyor).
+
+## Yarıda kalan kartlı ödemeler (Aşama 2.1) — 2026-11-25
+- `settleByToken()` (server/payment.js): sonucu token ile iyzico'ya sunucudan sorar; tarayıcı dönüşü, webhook ve eşleştirme aynı fonksiyonu kullanır.
+- Başlatmada iyzico token'ı `orders.provider_token`'a yazılır → migration `supabase/migrations/20261124_01_odeme_eslestirme.sql` ÇALIŞTIRILMALI (çalıştırılmazsa ödeme yine çalışır, yalnızca eşleştirme token bulamaz).
+- `server/reconcile.js`: `reconcilePayments()` her 15 dk (netlify/functions/odeme-eslestir.mjs) 10 dk–48 sa arası bekleyenleri sorar; 1 saati geçen ödenmemişler "başarısız". `handleIyzicoWebhook()` `/api/iyzico-bildirim` — bildirime güvenmez, token ile sorar; V3 imza uyuşmazlığı yalnızca kayda geçer (TEYİT: iyzico imza biçimi).
+- iyzico panelinde bildirim (webhook) adresi canlı alan adıyla girilmeli: `https://ALAN-ADI/api/iyzico-bildirim`.
+- Testler: `tests/reconcile.test.js` (sahte Supabase + iyzico; 44 test geçiyor).
