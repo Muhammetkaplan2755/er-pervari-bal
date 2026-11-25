@@ -175,3 +175,5 @@ section > .adm-editor { margin-bottom: 16px; padding: 16px; border: 1px solid va
 .adm-mfa { display: grid; gap: 10px; }
 .adm-mfa img { background: #fff; border-radius: 12px; padding: 8px; }
 .adm-mfa code { font-size: 13px; word-break: break-all; }
+
+.adm-order__wa { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; }

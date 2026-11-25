@@ -119,6 +119,22 @@ if (!E.WHATSAPP_TOKEN || !E.WHATSAPP_PHONE_NUMBER_ID) {
   }
 }
 
+/* ---------- e-posta ---------- */
+console.log('\nE-posta (sipariş onayı)')
+if (!E.BREVO_API_KEY || !E.MAIL_FROM) {
+  skip('BREVO_API_KEY / MAIL_FROM yok — kartlı siparişte onay e-postası gitmez')
+} else {
+  try {
+    const a = await get('https://api.brevo.com/v3/account', { 'api-key': E.BREVO_API_KEY, accept: 'application/json' })
+    check(a.status === 200, 'Brevo anahtarı geçerli', `Brevo anahtarı reddedildi (HTTP ${a.status})`)
+    const s = await get('https://api.brevo.com/v3/senders', { 'api-key': E.BREVO_API_KEY, accept: 'application/json' })
+    const sender = s.body?.senders?.find?.((x) => x.email?.toLowerCase() === E.MAIL_FROM.toLowerCase())
+    check(sender?.active, `gönderici ${E.MAIL_FROM} doğrulanmış`, `gönderici ${E.MAIL_FROM} Brevo'da yok ya da doğrulanmamış`)
+  } catch (e) {
+    bad(`Brevo'ya bağlanılamadı: ${e.message}`)
+  }
+}
+
 /* ---------- yayın ---------- */
 console.log('\nYayın')
 check(E.NETLIFY_BUILD_HOOK, 'NETLIFY_BUILD_HOOK tanımlı (panel "Siteye yayınla")', 'NETLIFY_BUILD_HOOK yok — "Siteye yayınla" düğmesi çalışmaz (yerelde normal)', true)

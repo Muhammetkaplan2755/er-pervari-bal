@@ -191,6 +191,7 @@ export const legalDocs = [
           'Supabase (sipariş kayıtları ve yönetici paneli) — [TEYİT: proje bölgesi, örn. AB / Frankfurt].',
           'Sipariş bildirimi (WhatsApp): mesaja yalnızca sipariş numarası, ürünler, tutar ve il/ilçe yazılır; adınız, telefonunuz ve adresiniz gönderilmez.',
           'iyzico (kartla ödeme) — Türkiye.',
+          'Brevo (sipariş onay e-postası; ad, e-posta, sipariş içeriği ve teslimat adresi) — Avrupa Birliği.',
         ],
       },
       {

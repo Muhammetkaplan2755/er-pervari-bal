@@ -26,7 +26,7 @@ const PATTERNS = [
   [/sb_publishable_[A-Za-z0-9_-]{16,}/, 'Supabase publishable anahtarı (yalnızca barındırma ayarında dursun)'],
   [/eyJhbGciOi[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/, 'JWT / Supabase eski tip anahtar'],
   [/sandbox-[A-Za-z0-9]{24,}/, 'iyzico deneme anahtarı'],
-  [/\b(IYZICO_(API|SECRET)_KEY|SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_TOKEN|NETLIFY_BUILD_HOOK|PERPLEXITY_API_KEY|FIRECRAWL_API_KEY|COMPOSIO_API_KEY)[ \t]*=[ \t]*(?!ANAHTAR)(?!your)[^\s'"#]{12,}/m, 'anahtar ataması'],
+  [/\b(IYZICO_(API|SECRET)_KEY|SUPABASE_SERVICE_ROLE_KEY|WHATSAPP_TOKEN|NETLIFY_BUILD_HOOK|PERPLEXITY_API_KEY|FIRECRAWL_API_KEY|COMPOSIO_API_KEY|BREVO_API_KEY)[ \t]*=[ \t]*(?!ANAHTAR)(?!your)[^\s'"#]{12,}/m, 'anahtar ataması'],
   [/\bCALLMEBOT[ \t]*=[ \t]*\d{10,}:(?!ANAHTAR)[A-Za-z0-9]{4,}/, 'CallMeBot anahtarı'],
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, 'özel anahtar'],
   [/\b(ghp|gho|github_pat)_[A-Za-z0-9_]{20,}/, 'GitHub token'],
@@ -34,6 +34,8 @@ const PATTERNS = [
   [/\bphc_[A-Za-z0-9]{30,}/, 'PostHog proje anahtarı'],
   [/\bfc-[A-Za-z0-9]{24,}/, 'Firecrawl anahtarı'],
   [/\bpplx-[A-Za-z0-9]{24,}/, 'Perplexity anahtarı'],
+  [/\bxkeysib-[A-Za-z0-9-]{40,}/, 'Brevo API anahtarı'],
+  [/\bxsmtpsib-[A-Za-z0-9-]{40,}/, 'Brevo SMTP anahtarı'],
   [/hooks\.netlify\.com\/build_hooks\/[a-f0-9]{16,}/, 'Netlify build hook adresi'],
 ]
 

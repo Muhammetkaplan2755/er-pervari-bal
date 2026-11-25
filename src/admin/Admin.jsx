@@ -15,6 +15,32 @@ const TABS = [
 ]
 const STOCK = { in: 'Var', low: 'Az kaldı', out: 'Tükendi', preorder: 'Ön sipariş' }
 const PAY = { kart: 'Kart', havale: 'Havale', kapida: 'Kapıda' }
+
+/* WhatsApp siparişinde sözleşmenin müşteriye "kalıcı veri saklayıcıyla" teyidi
+   (Mesafeli Sözleşmeler Yönetmeliği): dükkânın kendi WhatsApp'ından gidecek hazır mesaj. */
+const waPhone = (raw) => {
+  const d = String(raw ?? '').replace(/\D/g, '')
+  if (d.length === 10 && d.startsWith('5')) return `90${d}`
+  if (d.length === 11 && d.startsWith('05')) return `9${d}`
+  if (d.length === 12 && d.startsWith('905')) return d
+  return null
+}
+function confirmText(o) {
+  const items = (o.items ?? []).map((i) => `• ${i.qty} × ${i.name} ${i.label}`).join('\n')
+  const site = typeof location !== 'undefined' ? location.origin : ''
+  return [
+    `Merhaba ${o.customer?.name ?? ''}, Er Pervari Bal siparişiniz onaylandı.`,
+    `Sipariş no: ${o.id}`,
+    '',
+    items,
+    `Toplam (KDV dahil): ${new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(o.total) || 0)}`,
+    `Ödeme: ${PAY[o.payment_method] ?? o.payment_method}`,
+    '',
+    'Teslimden itibaren 14 gün cayma hakkınız vardır; ambalajı açılmış gıda ürünlerinde (hijyen) cayma hakkı yoktur.',
+    `Ön bilgilendirme formu: ${site}/yasal/on-bilgilendirme-formu`,
+    `Mesafeli satış sözleşmesi: ${site}/yasal/mesafeli-satis-sozlesmesi`,
+  ].join('\n')
+}
 const trOf = (v) => (v && typeof v === 'object' ? v.tr ?? '' : v ?? '')
 const dt = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' })
 
@@ -141,6 +167,14 @@ function OrderRow({ order, onSaved }) {
               <div><dt>Ara toplam / kargo</dt><dd>{money(order.subtotal)} + {money(order.shipping)}</dd></div>
               {order.channel === 'kart' && <div><dt>iyzico kesintisi</dt><dd>{money(order.commission)}{order.payout != null && ` · hesaba geçecek ${money(order.payout)}`}</dd></div>}
             </dl>
+            {order.channel === 'whatsapp' && waPhone(c.phone) && (
+              <p className="adm-order__wa">
+                <a className="adm-btn" href={`https://wa.me/${waPhone(c.phone)}?text=${encodeURIComponent(confirmText(order))}`} target="_blank" rel="noopener noreferrer">
+                  Müşteriye onay mesajı gönder (WhatsApp)
+                </a>
+                <span className="adm-muted">Sipariş, tutar, cayma hakkı ve sözleşme bağlantısı yazılı hazır mesaj açılır; göndermeden önce kontrol edin.</span>
+              </p>
+            )}
             <div className="adm-order__edit">
               <label>Ek gider (kargo, kapıda ödeme ücreti…)<input type="number" min="0" step="0.01" value={draft.extra_cost} onChange={(e) => setDraft({ ...draft, extra_cost: e.target.value })} /></label>
               <label>Kargo takip no<input value={draft.tracking_code} onChange={(e) => setDraft({ ...draft, tracking_code: e.target.value })} /></label>

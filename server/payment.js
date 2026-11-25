@@ -17,6 +17,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { trText } from '../src/data/catalog.js'
 import { cleanBuyer, clientIp, json, orderItems, priceOrder, sameSiteJson } from './catalog-live.js'
 import { db, dbEnabled } from './db.js'
+import { sendOrderEmail } from './mailer.js'
 import { notifyOrder } from './whatsapp.js'
 
 const SANDBOX = 'https://sandbox-api.iyzipay.com'
@@ -241,7 +242,10 @@ export async function settleByToken(token, { abandon = false, expectedOrder = ''
           payout: payout ? Math.round(payout * 100) / 100 : null,
           provider_payment_id: String(r.paymentId ?? ''),
         })
-        if (saved) await notifyOrder(saved)
+        if (saved) {
+          // Koşullu güncellemeyi yalnızca bir istek kazanır: bildirim ve onay e-postası tek kez gider.
+          await Promise.all([notifyOrder(saved), sendOrderEmail(saved)])
+        }
       } else if (definiteFail && before?.status === 'odeme_bekliyor') {
         await db.updateOrderIf(orderNo, 'odeme_bekliyor', { status: 'basarisiz', admin_note: `iyzico: ${r.errorMessage ?? r.paymentStatus ?? ''}` })
       }
