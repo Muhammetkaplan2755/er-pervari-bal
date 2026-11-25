@@ -30,7 +30,7 @@ const env = (k) => (typeof process !== 'undefined' ? process.env[k] : undefined)
 const money = (n) => (Number.isInteger(n) ? `${n}.0` : n.toFixed(2))
 const num = (v) => Number(v) || 0
 
-async function iyzico(path, body) {
+export async function iyzico(path, body) {
   const apiKey = env('IYZICO_API_KEY')
   const secret = env('IYZICO_SECRET_KEY')
   if (!apiKey || !secret) throw new Error('IYZICO_API_KEY / IYZICO_SECRET_KEY tanımlı değil')

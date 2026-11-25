@@ -2,10 +2,12 @@
      POST /api/yonetim/yayinla        siteyi yeni fiyatlarla yeniden yayınla (Netlify build hook)
      POST /api/yonetim/test-bildirim  bildirim numaralarına deneme mesajı
      POST /api/yonetim/haftalik       haftalık raporu şimdi gönder
+     POST /api/yonetim/iade           kart siparişini iyzico ile iptal / iade et ({ orderId, amount? })
    Ortam: NETLIFY_BUILD_HOOK (Netlify → Site configuration → Build hooks; GİZLİ). */
 import { buildReport, money } from '../src/admin/report.js'
-import { json } from './catalog-live.js'
+import { clientIp, json } from './catalog-live.js'
 import { db, dbEnabled, requireAdmin } from './db.js'
+import { refundOrder } from './refund.js'
 import { TEMPLATES, broadcast, whatsappEnabled } from './whatsapp.js'
 
 const env = (k) => (typeof process !== 'undefined' ? process.env[k] : undefined)
@@ -51,7 +53,7 @@ export async function sendWeeklyReport() {
   return broadcast(TEMPLATES.weekly, params, text)
 }
 
-export async function adminAction(request) {
+export async function adminAction(request, ctx = {}) {
   if (request.method !== 'POST') return json(405, { error: 'method' })
   const user = await requireAdmin(request)
   if (!user) return json(401, { error: 'auth' })
@@ -74,6 +76,12 @@ export async function adminAction(request) {
       return json(200, r)
     }
     if (action === 'haftalik') return json(200, await sendWeeklyReport())
+    if (action === 'iade') {
+      let body = {}
+      try { body = await request.json() } catch { return json(400, { error: 'json' }) }
+      const r = await refundOrder(body.orderId, body.amount, { ip: clientIp(request, ctx) })
+      return json(r.ok ? 200 : 400, r.ok ? r : { error: r.error })
+    }
   } catch (e) {
     console.error('yonetim', action, e.message)
     return json(502, { error: e.message })

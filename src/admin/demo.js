@@ -144,9 +144,17 @@ return {
     upload: async (_id, file) => { await wait(300); return URL.createObjectURL(file) },
     remove: async () => wait(),
   },
-  serverAction: async (action) => {
+  serverAction: async (action, body) => {
     await wait(400)
     if (action === 'yayinla') return { ok: true }
+    if (action === 'iade') {
+      const o = db.orders.find((x) => x.id === body.orderId)
+      const amount = body.amount ?? Number(o.total) - (o.refunded || 0)
+      o.refunded = (o.refunded || 0) + Number(amount)
+      if (o.refunded >= o.total) o.status = 'iade'
+      o.admin_note = [o.admin_note, `İade ${amount} TL (deneme)`].filter(Boolean).join(' · ')
+      return { ok: true, method: 'refund', amount, order: clone(o) }
+    }
     return { sent: db.settings.notify_numbers.length, total: db.settings.notify_numbers.length, demo: true }
   },
 }

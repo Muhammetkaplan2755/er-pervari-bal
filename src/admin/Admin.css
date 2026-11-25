@@ -177,3 +177,8 @@ section > .adm-editor { margin-bottom: 16px; padding: 16px; border: 1px solid va
 .adm-mfa code { font-size: 13px; word-break: break-all; }
 
 .adm-order__wa { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; }
+
+.adm-refund { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; margin: 0 0 12px; padding: 12px; border-radius: 12px; background: #fbefe9; }
+.adm-refund label { width: 160px; }
+.adm-btn--danger { border-color: var(--a-err); color: var(--a-err); background: #fff; }
+.adm-btn--danger:hover { background: var(--a-err); color: #fff; }

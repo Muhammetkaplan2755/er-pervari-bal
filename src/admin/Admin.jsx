@@ -121,11 +121,42 @@ function Login({ recovery, onDone }) {
   )
 }
 
+/* ---------- kart iadesi ---------- */
+function RefundBox({ order, onDone }) {
+  const left = Math.round((Number(order.total) - (Number(order.refunded) || 0)) * 100) / 100
+  const [amount, setAmount] = useState(String(left))
+  const [state, setState] = useState('')
+  const run = async () => {
+    const n = Number(amount)
+    if (!(n > 0) || n > left) return setState(`0 ile ${left} TL arasında bir tutar girin.`)
+    if (!window.confirm(`${order.id} siparişi için ${n} TL müşterinin kartına iade edilecek.\n\nBu işlem GERİ ALINAMAZ. Devam edilsin mi?`)) return
+    setState('İade ediliyor…')
+    try {
+      const r = await serverAction('iade', { orderId: order.id, amount: n })
+      setState(r.method === 'cancel' ? 'Ödeme iptal edildi; müşteri kartından çekim kalkar.' : `${r.amount} TL iade edildi; bankaya göre kartına birkaç gün içinde yansır.`)
+      if (r.order) onDone(r.order)
+    } catch (e) {
+      setState(`İade yapılamadı: ${e.message}`)
+    }
+  }
+  return (
+    <div className="adm-refund">
+      <label>Kartına iade (₺)<input type="number" min="0" step="0.01" max={left} value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
+      <button type="button" className="adm-btn adm-btn--danger" onClick={run}>Kartına iade et</button>
+      <span className="adm-muted">{state || 'Tamamı bugün iade edilirse ödeme iptal edilir. Kısmi iade de yapılabilir. Durumu elle “İade” yapmak parayı geri göndermez; bu düğmeyi kullanın.'}</span>
+    </div>
+  )
+}
+
 /* ---------- siparişler ---------- */
 function OrderRow({ order, onSaved }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState({ status: order.status, extra_cost: order.extra_cost ?? 0, tracking_code: order.tracking_code ?? '', admin_note: order.admin_note ?? '' })
   const [state, setState] = useState('')
+  // Sipariş dışarıdan değişirse (ör. iade durumu "iade" yaptı) taslağı yenile; eski durum geri kaydedilmesin.
+  useEffect(() => {
+    setDraft({ status: order.status, extra_cost: order.extra_cost ?? 0, tracking_code: order.tracking_code ?? '', admin_note: order.admin_note ?? '' })
+  }, [order])
   const c = order.customer ?? {}
   const dirty = draft.status !== order.status || Number(draft.extra_cost) !== Number(order.extra_cost) || draft.tracking_code !== (order.tracking_code ?? '') || draft.admin_note !== (order.admin_note ?? '')
 
@@ -175,6 +206,10 @@ function OrderRow({ order, onSaved }) {
                 <span className="adm-muted">Sipariş, tutar, cayma hakkı ve sözleşme bağlantısı yazılı hazır mesaj açılır; göndermeden önce kontrol edin.</span>
               </p>
             )}
+            {order.channel === 'kart' && ['odendi', 'kargolandi', 'teslim_edildi'].includes(order.status) && (
+              <RefundBox order={order} onDone={onSaved} />
+            )}
+            {order.channel === 'kart' && Number(order.refunded) > 0 && <p className="adm-muted">İade edilen: {money(order.refunded)}</p>}
             <div className="adm-order__edit">
               <label>Ek gider (kargo, kapıda ödeme ücreti…)<input type="number" min="0" step="0.01" value={draft.extra_cost} onChange={(e) => setDraft({ ...draft, extra_cost: e.target.value })} /></label>
               <label>Kargo takip no<input value={draft.tracking_code} onChange={(e) => setDraft({ ...draft, tracking_code: e.target.value })} /></label>

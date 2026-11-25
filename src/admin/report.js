@@ -41,7 +41,8 @@ export function buildReport(orders, costs = []) {
     if (!SOLD.has(o.status)) continue
     t.orders += 1
     t[o.channel === 'kart' ? 'card' : 'whatsapp'] += 1
-    t.revenue += num(o.total)
+    // Kısmi iade cirodan düşülür (tam iade zaten 'iade' durumundadır ve sayılmaz).
+    t.revenue += num(o.total) - num(o.refunded)
     t.products += num(o.subtotal)
     t.shipping += num(o.shipping)
     t.commission += num(o.commission)

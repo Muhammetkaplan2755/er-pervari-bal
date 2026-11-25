@@ -81,9 +81,13 @@ const real = {
       if (path) must(await supabase.storage.from(BUCKET).remove([path]))
     },
   },
-  serverAction: async (action) => {
+  serverAction: async (action, body) => {
     const session = await real.auth.session()
-    const res = await fetch(`/api/yonetim/${action}`, { method: 'POST', headers: { authorization: `Bearer ${session?.access_token ?? ''}` } })
+    const res = await fetch(`/api/yonetim/${action}`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${session?.access_token ?? ''}`, ...(body ? { 'content-type': 'application/json' } : {}) },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    })
     const out = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(out.error || `HTTP ${res.status}`)
     return out
