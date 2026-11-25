@@ -180,3 +180,9 @@ Caveman reviewer iki tur çalıştı; bulgular düzeltildi.
 - `server/reconcile.js`: `reconcilePayments()` her 15 dk (netlify/functions/odeme-eslestir.mjs) 10 dk–48 sa arası bekleyenleri sorar; 1 saati geçen ödenmemişler "başarısız". `handleIyzicoWebhook()` `/api/iyzico-bildirim` — bildirime güvenmez, token ile sorar; V3 imza uyuşmazlığı yalnızca kayda geçer (TEYİT: iyzico imza biçimi).
 - iyzico panelinde bildirim (webhook) adresi canlı alan adıyla girilmeli: `https://ALAN-ADI/api/iyzico-bildirim`.
 - Testler: `tests/reconcile.test.js` (sahte Supabase + iyzico; 44 test geçiyor).
+
+## Onay e-postası ve stok (Aşama 2.2–2.3) — 2026-11-25
+- `server/mailer.js`: kartla ödenen siparişte Brevo ile onay e-postası (özet + ön bilgilendirme + mesafeli satış tam metni). Brevo hesabı ŞİMDİLİK ATLANDI; `BREVO_API_KEY` + `MAIL_FROM` girilince çalışır (`npm run kontrol` denetler). Panelde WhatsApp siparişleri için hazır onay mesajı düğmesi.
+- Stok: migration `20261125_01_stok.sql` (çalıştırıldı). `inventory` tablosu + `orders_stock` tetikleyicisi (kayıtta düşer, iptal/başarısız/iadede geri ekler, yetmezse `stok_yetersiz` → sunucu 409 `stock`), ürün durumu adetten (≤ low_at "az kaldı", 0 "tükendi"; ön siparişe dokunmaz). Panelde boyut başına "Stok adedi" (boş = takip yok).
+- Gerçek veritabanında denendi: stok 1 → 1. sipariş adet 0 / "tükendi", 2. sipariş `stok_yetersiz`, iptal → adet 1 / "az kaldı"; test stoğu silindi, ürün durumu geri alındı, test siparişi `iptal`.
+- Not: stok durumu değişince site (statik) "Siteye yayınla" ile güncellenir; ödeme ekranı ise canlı veritabanına bakar, tükenmiş ürün satılamaz.
